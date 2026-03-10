@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const { ethers } = require('ethers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,27 +9,40 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Helper: derive address from private key
+function getAddressFromKey(privateKey) {
+  if (!privateKey || privateKey === '0x...') return null;
+  try {
+    const wallet = new ethers.Wallet(privateKey);
+    return wallet.address;
+  } catch {
+    return null;
+  }
+}
+
 // API endpoint to get game config (keeps private keys server-side for trainer TXs)
 app.get('/api/config', (req, res) => {
-  // Only send public config to frontend
+  // Derive addresses from private keys
+  const trainers = [
+    {
+      name: process.env.TRAINER_1_NAME || 'Chad Blackstone',
+      address: getAddressFromKey(process.env.TRAINER_1_PRIVATE_KEY),
+    },
+    {
+      name: process.env.TRAINER_2_NAME || 'Priya Ventures',
+      address: getAddressFromKey(process.env.TRAINER_2_PRIVATE_KEY),
+    },
+    {
+      name: process.env.TRAINER_3_NAME || 'François McKinsey',
+      address: getAddressFromKey(process.env.TRAINER_3_PRIVATE_KEY),
+    },
+  ];
+
   res.json({
     rpcUrl: process.env.RPC_URL || 'https://rpc.moderato.tempo.xyz',
     chainId: parseInt(process.env.CHAIN_ID) || 42431,
     explorerUrl: process.env.EXPLORER_URL || 'https://explore.tempo.xyz',
-    trainers: [
-      {
-        name: process.env.TRAINER_1_NAME || 'Chad Blackstone',
-        address: process.env.TRAINER_1_ADDRESS,
-      },
-      {
-        name: process.env.TRAINER_2_NAME || 'Priya Ventures',
-        address: process.env.TRAINER_2_ADDRESS,
-      },
-      {
-        name: process.env.TRAINER_3_NAME || 'François McKinsey',
-        address: process.env.TRAINER_3_ADDRESS,
-      },
-    ],
+    trainers,
   });
 });
 
@@ -50,9 +64,6 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
   }
 
   try {
-    // Dynamic import of ethers
-    const { ethers } = await import('ethers');
-
     const provider = new ethers.JsonRpcProvider(
       process.env.RPC_URL || 'https://rpc.moderato.tempo.xyz'
     );
@@ -91,7 +102,7 @@ app.listen(PORT, () => {
   ║                                                        ║
   ║   Make sure you have:                                  ║
   ║   1. Copied .env.example to .env                       ║
-  ║   2. Added your trainer wallet addresses & keys        ║
+  ║   2. Added your trainer private keys                   ║
   ║   3. Funded trainer wallets with testnet tokens        ║
   ║                                                        ║
   ╚════════════════════════════════════════════════════════╝
