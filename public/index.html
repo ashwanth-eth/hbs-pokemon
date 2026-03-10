@@ -979,13 +979,13 @@
 
         <!-- Battle Instructions -->
         <div class="battle-instructions">
-          <div class="battle-instructions-title">HOW TO PLAY</div>
+          <div class="battle-instructions-title">ESCROW BATTLE</div>
           <ul>
-            <li><span class="key">Attacks</span> cost tokens from your budget</li>
-            <li><span class="key">Damage dealt</span> = tokens taken from opponent</li>
-            <li><span class="key">Type matchups</span> affect damage (2x or 0.5x)</li>
-            <li><span class="key">Heals</span> burn tokens, restore HP</li>
-            <li><span class="key">Budget = 0</span> means you can't act!</li>
+            <li><span class="key">Attacks</span> stake tokens into pot</li>
+            <li><span class="key">Win</span> = claim your pot back!</li>
+            <li><span class="key">Lose</span> = tokens lost to escrow</li>
+            <li><span class="key">Type matchups</span> = 2x or 0.5x damage</li>
+            <li><span class="key">Retries cost real tokens!</span></li>
           </ul>
         </div>
 
@@ -1121,6 +1121,7 @@
     let battleTxs = [];
     let isPlayerTurn = true;
     let battleActive = false;
+    let totalStaked = 0; // Total tokens staked into escrow this battle
 
     // Market Conditions
     let activeMarketCondition = null;
@@ -1601,6 +1602,7 @@
       playerHP = 100;
       trainerHP = 100;
       battleTxs = [];
+      totalStaked = 0; // Reset pot for new battle
       isPlayerTurn = true;
       battleActive = true;
       activeMarketCondition = null;
@@ -1822,12 +1824,13 @@
           addBattleLog(`<span class="${effText.class}">${effText.text} (${effectiveness}x payout)</span>`);
         }
 
-        const response = await fetch('/api/player-attack', {
+        // ESCROW MODEL: Player stakes tokens into pot
+        const response = await fetch('/api/stake', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            trainerIndex: currentTrainer.index,
-            amount: effectiveAmount  // Adjusted amount based on type AND market!
+            amount: effectiveAmount,
+            reason: 'attack'
           })
         });
 
@@ -1838,8 +1841,9 @@
           throw new Error(result.message || 'TX failed');
         }
 
-        // Deduct from player's budget
+        // Deduct from player's budget and track staked amount
         playerBudget = Math.max(0, playerBudget - parseFloat(effectiveAmount));
+        totalStaked += parseFloat(effectiveAmount);
         updateBudgetBars();
 
         battleTxs.push({
@@ -1901,11 +1905,13 @@
       try {
         addBattleLog(`You used ${heal.name}!`);
 
-        const response = await fetch('/api/player-heal', {
+        // ESCROW MODEL: Heals also stake into pot (burned on loss)
+        const response = await fetch('/api/stake', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: heal.cost.toString()
+            amount: heal.cost.toString(),
+            reason: 'heal'
           })
         });
 
@@ -1916,8 +1922,9 @@
           throw new Error(result.message || 'TX failed');
         }
 
-        // Deduct from player's budget
+        // Deduct from player's budget and track staked amount
         playerBudget = Math.max(0, playerBudget - heal.cost);
+        totalStaked += heal.cost;
         updateBudgetBars();
 
         // Heal the player
@@ -2015,71 +2022,50 @@
         addBattleLog(`<span class="${effText.class}">${effText.text}</span>`);
       }
 
+      // ESCROW MODEL: Trainer attacks are simulated (no real token transfer)
+      // Trainer's budget is tracked for game balance only
+
+      // Brief delay for UX
       showLoading('Trainer attacking...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      hideLoading();
 
-      try {
-        const response = await fetch('/api/trainer-attack', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trainerIndex: currentTrainer.index,
-            amount: amount
-          })
-        });
+      // Deduct from trainer's budget (simulated)
+      trainerBudget = Math.max(0, trainerBudget - parseFloat(amount));
+      updateBudgetBars();
 
-        const result = await response.json();
-        hideLoading();
+      battleTxs.push({
+        from: 'trainer',
+        hash: 'SIMULATED',
+        amount: amount,
+        move: move.name,
+        effectiveness: effectiveness,
+        marketDebuff: marketDebuff
+      });
 
-        if (!result.success) {
-          throw new Error(result.message || 'TX failed');
-        }
+      playerHP = Math.max(0, playerHP - damage);
+      updateHPBars();
+      animateHit('player');
 
-        // Deduct from trainer's budget
-        trainerBudget = Math.max(0, trainerBudget - parseFloat(amount));
-        updateBudgetBars();
+      addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
+      addBattleLog(`(Trainer attack simulated - no token transfer)`);
+      addBattleLog(`${currentTrainer.name}'s budget: ${trainerBudget.toFixed(3)}`);
 
-        battleTxs.push({
-          from: 'trainer',
-          hash: result.txHash,
-          amount: amount,
-          move: move.name,
-          effectiveness: effectiveness,
-          marketDebuff: marketDebuff
-        });
+      // Clear condition at end of turn
+      activeMarketCondition = null;
+      hideMarketConditionIndicator();
 
-        playerHP = Math.max(0, playerHP - damage);
-        updateHPBars();
-        animateHit('player');
-
-        addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
-        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${amount} USD)</a>`);
-        addBattleLog(`${currentTrainer.name}'s budget: ${trainerBudget.toFixed(3)}`);
-
-        // Clear condition at end of turn
-        activeMarketCondition = null;
-        hideMarketConditionIndicator();
-
-        if (playerHP <= 0) {
-          endBattle(false);
-          return;
-        }
-
-        isPlayerTurn = true;
-        setMovesEnabled(true);
-        checkBudgetForMoves();
-
-      } catch (error) {
-        hideLoading();
-        addBattleLog(`Trainer TX failed. Your turn.`);
-        activeMarketCondition = null;
-        hideMarketConditionIndicator();
-        isPlayerTurn = true;
-        setMovesEnabled(true);
-        checkBudgetForMoves();
+      if (playerHP <= 0) {
+        endBattle(false);
+        return;
       }
+
+      isPlayerTurn = true;
+      setMovesEnabled(true);
+      checkBudgetForMoves();
     }
 
-    function endBattle(playerWon) {
+    async function endBattle(playerWon) {
       battleActive = false;
       setMovesEnabled(false);
       activeMarketCondition = null;
@@ -2093,6 +2079,29 @@
       const title = document.getElementById('result-title');
       const gameBudget = GAME_BUDGETS[gamesWon] || 1.00;
       const gameNum = gamesWon + 1;
+
+      // ESCROW MODEL: Claim pot on victory
+      let claimTxHash = null;
+      if (playerWon && totalStaked > 0) {
+        showLoading('Claiming your winnings...');
+        try {
+          const response = await fetch('/api/claim-pot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: totalStaked.toFixed(6) })
+          });
+          const result = await response.json();
+          if (result.success) {
+            claimTxHash = result.txHash;
+            addBattleLog(`<span class="super-effective">VICTORY! Claimed ${totalStaked.toFixed(3)} tokens from pot!</span>`);
+            addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">Claim TX: ${result.txHash.slice(0, 10)}...</a>`);
+          }
+        } catch (error) {
+          console.error('Claim failed:', error);
+          addBattleLog(`Claim failed: ${error.message}`);
+        }
+        hideLoading();
+      }
 
       // Handle win
       if (playerWon) {
@@ -2112,17 +2121,16 @@
             <div>You defeated all three trainers!</div>
             <div style="margin-top: 15px; color: #16a34a; font-size: 10px;">You're graduating in May with a job!</div>
             <div style="margin-top: 10px;">Final Battle vs ${currentTrainer.name}</div>
+            <div>Total staked: ${totalStaked.toFixed(3)} USD (claimed back!)</div>
             <div>Total TXs: ${battleTxs.length}</div>
-            <div>You spent: ${playerTotal.toFixed(3)} USD</div>
-            <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
           `;
 
-          document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+          document.getElementById('tx-list').innerHTML = battleTxs.filter(tx => tx.hash !== 'SIMULATED').map(tx => `
             <div>
               ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
               <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
             </div>
-          `).join('');
+          `).join('') + (claimTxHash ? `<div>✅ Claim: <a href="${config.explorerUrl}/tx/${claimTxHash}" target="_blank">${claimTxHash.slice(0, 16)}...</a></div>` : '');
 
           const playAgainBtn = document.getElementById('play-again-btn');
           playAgainBtn.textContent = 'Play Again';
@@ -2141,42 +2149,38 @@
 
           document.getElementById('result-stats').innerHTML = `
             <div>Game ${gameNum} vs ${currentTrainer.name}</div>
-            <div>Game Budget: ${gameBudget.toFixed(2)} tokens each</div>
+            <div>Staked: ${totalStaked.toFixed(3)} tokens → Claimed back!</div>
             <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
             <div>Total TXs: ${battleTxs.length}</div>
-            <div>You spent: ${playerTotal.toFixed(3)} USD</div>
-            <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
             <div style="color: #16a34a; margin-top: 10px;">Next game budget: ${nextBudget.toFixed(2)} tokens</div>
             <div style="color: #f59e0b;">${3 - gamesWon} trainer(s) remaining!</div>
           `;
 
-          document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+          document.getElementById('tx-list').innerHTML = battleTxs.filter(tx => tx.hash !== 'SIMULATED').map(tx => `
             <div>
               ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
               <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
             </div>
-          `).join('');
+          `).join('') + (claimTxHash ? `<div>✅ Claim: <a href="${config.explorerUrl}/tx/${claimTxHash}" target="_blank">${claimTxHash.slice(0, 16)}...</a></div>` : '');
 
           const playAgainBtn = document.getElementById('play-again-btn');
           playAgainBtn.textContent = 'Continue';
           playAgainBtn.onclick = () => showScreen('overworld-screen');
         }
       } else {
-        // Loss - retry same trainer with same game number
+        // Loss - tokens stay in escrow (lost!)
         title.textContent = 'DEFEAT!';
         title.className = 'result-title lose';
 
         document.getElementById('result-stats').innerHTML = `
           <div>Game ${gameNum} vs ${currentTrainer.name}</div>
-          <div>Game Budget: ${gameBudget.toFixed(2)} tokens each</div>
+          <div style="color: #dc2626;">LOST ${totalStaked.toFixed(3)} tokens to escrow!</div>
           <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
           <div>Total TXs: ${battleTxs.length}</div>
-          <div>You spent: ${playerTotal.toFixed(3)} USD</div>
-          <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
-          <div style="color: #dc2626; margin-top: 10px;">Try again with budget reset to ${gameBudget.toFixed(2)} tokens.</div>
+          <div style="color: #f59e0b; margin-top: 10px;">Retry costs real tokens. Budget: ${gameBudget.toFixed(2)} tokens.</div>
         `;
 
-        document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+        document.getElementById('tx-list').innerHTML = battleTxs.filter(tx => tx.hash !== 'SIMULATED').map(tx => `
           <div>
             ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
             <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
@@ -2184,7 +2188,7 @@
         `).join('');
 
         const playAgainBtn = document.getElementById('play-again-btn');
-        playAgainBtn.textContent = 'Retry';
+        playAgainBtn.textContent = 'Retry (costs tokens!)';
         playAgainBtn.onclick = () => startBattle(currentTrainer.index);
       }
 

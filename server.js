@@ -45,21 +45,21 @@ function getProvider() {
   );
 }
 
+// Use TRAINER_1 wallet as the escrow/pot holder
+function getEscrowAddress() {
+  return getAddressFromKey(process.env.TRAINER_1_PRIVATE_KEY);
+}
+
+function getEscrowPrivateKey() {
+  return process.env.TRAINER_1_PRIVATE_KEY;
+}
+
 // API endpoint to get game config
 app.get('/api/config', (req, res) => {
   const trainers = [
-    {
-      name: process.env.TRAINER_1_NAME || 'Chad Blackstone',
-      address: getAddressFromKey(process.env.TRAINER_1_PRIVATE_KEY),
-    },
-    {
-      name: process.env.TRAINER_2_NAME || 'Priya Ventures',
-      address: getAddressFromKey(process.env.TRAINER_2_PRIVATE_KEY),
-    },
-    {
-      name: process.env.TRAINER_3_NAME || 'François McKinsey',
-      address: getAddressFromKey(process.env.TRAINER_3_PRIVATE_KEY),
-    },
+    { name: process.env.TRAINER_1_NAME || 'Chad Blackstone' },
+    { name: process.env.TRAINER_2_NAME || 'Priya Ventures' },
+    { name: process.env.TRAINER_3_NAME || 'François McKinsey' },
   ];
 
   res.json({
@@ -67,99 +67,37 @@ app.get('/api/config', (req, res) => {
     chainId: parseInt(process.env.CHAIN_ID) || 42431,
     explorerUrl: process.env.EXPLORER_URL || 'https://explore.tempo.xyz',
     playerAddress: getAddressFromKey(process.env.PLAYER_WALLET),
+    escrowAddress: getEscrowAddress(),
     battleToken: BATTLE_TOKEN,
     trainers,
   });
 });
 
-// API endpoint for player attacks (ERC-20 token transfer)
-// Player deals damage → Trainer loses money → Trainer sends to Player
-app.post('/api/player-attack', express.json(), async (req, res) => {
-  const { trainerIndex, amount } = req.body;
+// ============================================
+// ESCROW-BASED BATTLE SYSTEM
+// ============================================
 
-  // Get the trainer's private key (they're the one losing money)
-  const privateKeys = [
-    process.env.TRAINER_1_PRIVATE_KEY,
-    process.env.TRAINER_2_PRIVATE_KEY,
-    process.env.TRAINER_3_PRIVATE_KEY,
-  ];
+// Player stakes tokens into escrow (for attacks or heals)
+// Player wallet → Escrow wallet
+app.post('/api/stake', express.json(), async (req, res) => {
+  const { amount, reason } = req.body; // reason: 'attack' or 'heal'
 
-  const privateKey = privateKeys[trainerIndex];
-  const playerAddress = getAddressFromKey(process.env.PLAYER_WALLET);
-
-  if (!privateKey) {
-    return res.status(400).json({ error: 'Trainer wallet not configured' });
-  }
-
-  try {
-    const provider = getProvider();
-    const wallet = new ethers.Wallet(privateKey, provider);
-
-    // Create token contract instance
-    const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
-
-    // Get decimals (cache this in production)
-    let decimals;
-    try {
-      decimals = await token.decimals();
-    } catch {
-      decimals = 18; // Default to 18 if decimals() fails
-    }
-
-    // Parse amount with correct decimals
-    const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
-
-    console.log(`Player attacks! Trainer loses ${amount} pathUSD → sent to player`);
-
-    // Transfer tokens FROM trainer TO player (trainer loses money)
-    const tx = await token.transfer(playerAddress, tokenAmount);
-
-    // Wait for confirmation
-    const receipt = await tx.wait();
-
-    console.log(`Player attack TX confirmed: ${tx.hash}`);
-
-    res.json({
-      success: true,
-      txHash: tx.hash,
-      blockNumber: receipt.blockNumber,
-    });
-  } catch (error) {
-    console.error('Player attack TX failed:', error);
-    res.status(500).json({
-      error: 'Transaction failed',
-      message: error.message,
-    });
-  }
-});
-
-// API endpoint for trainer attacks (ERC-20 token transfer)
-// Trainer deals damage → Player loses money → Player sends to Trainer
-app.post('/api/trainer-attack', express.json(), async (req, res) => {
-  const { trainerIndex, amount } = req.body;
-
-  // Get trainer address (they receive the money)
-  const trainerAddresses = [
-    getAddressFromKey(process.env.TRAINER_1_PRIVATE_KEY),
-    getAddressFromKey(process.env.TRAINER_2_PRIVATE_KEY),
-    getAddressFromKey(process.env.TRAINER_3_PRIVATE_KEY),
-  ];
-
-  const trainerAddress = trainerAddresses[trainerIndex];
   const playerPrivateKey = process.env.PLAYER_WALLET;
+  const escrowAddress = getEscrowAddress();
 
   if (!playerPrivateKey) {
     return res.status(400).json({ error: 'Player wallet not configured' });
   }
 
+  if (!escrowAddress) {
+    return res.status(400).json({ error: 'Escrow wallet not configured' });
+  }
+
   try {
     const provider = getProvider();
     const wallet = new ethers.Wallet(playerPrivateKey, provider);
-
-    // Create token contract instance
     const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
 
-    // Get decimals
     let decimals;
     try {
       decimals = await token.decimals();
@@ -167,18 +105,14 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
       decimals = 18;
     }
 
-    // Parse amount with correct decimals
     const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
 
-    console.log(`Trainer attacks! Player loses ${amount} pathUSD → sent to trainer`);
+    console.log(`Player stakes ${amount} pathUSD into escrow (${reason})`);
 
-    // Transfer tokens FROM player TO trainer (player loses money)
-    const tx = await token.transfer(trainerAddress, tokenAmount);
-
-    // Wait for confirmation
+    const tx = await token.transfer(escrowAddress, tokenAmount);
     const receipt = await tx.wait();
 
-    console.log(`Trainer attack TX confirmed: ${tx.hash}`);
+    console.log(`Stake TX confirmed: ${tx.hash}`);
 
     res.json({
       success: true,
@@ -186,7 +120,7 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
       blockNumber: receipt.blockNumber,
     });
   } catch (error) {
-    console.error('Trainer attack TX failed:', error);
+    console.error('Stake TX failed:', error);
     res.status(500).json({
       error: 'Transaction failed',
       message: error.message,
@@ -194,28 +128,27 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
   }
 });
 
-// Dead address for burning tokens (healing)
-// Using 0xdead instead of 0x0 because most ERC-20s block transfers to zero address
-const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-
-// API endpoint for player healing (burns tokens to null address)
-app.post('/api/player-heal', express.json(), async (req, res) => {
+// Player claims pot from escrow (on victory)
+// Escrow wallet → Player wallet
+app.post('/api/claim-pot', express.json(), async (req, res) => {
   const { amount } = req.body;
 
-  const playerPrivateKey = process.env.PLAYER_WALLET;
+  const escrowPrivateKey = getEscrowPrivateKey();
+  const playerAddress = getAddressFromKey(process.env.PLAYER_WALLET);
 
-  if (!playerPrivateKey) {
+  if (!escrowPrivateKey) {
+    return res.status(400).json({ error: 'Escrow wallet not configured' });
+  }
+
+  if (!playerAddress) {
     return res.status(400).json({ error: 'Player wallet not configured' });
   }
 
   try {
     const provider = getProvider();
-    const wallet = new ethers.Wallet(playerPrivateKey, provider);
-
-    // Create token contract instance
+    const wallet = new ethers.Wallet(escrowPrivateKey, provider);
     const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
 
-    // Get decimals
     let decimals;
     try {
       decimals = await token.decimals();
@@ -223,18 +156,14 @@ app.post('/api/player-heal', express.json(), async (req, res) => {
       decimals = 18;
     }
 
-    // Parse amount with correct decimals
     const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
 
-    console.log(`Player heals! Burning ${amount} pathUSD to null address`);
+    console.log(`Player claims ${amount} pathUSD from escrow (VICTORY!)`);
 
-    // Transfer tokens to burn address (0xdead)
-    const tx = await token.transfer(BURN_ADDRESS, tokenAmount);
-
-    // Wait for confirmation
+    const tx = await token.transfer(playerAddress, tokenAmount);
     const receipt = await tx.wait();
 
-    console.log(`Heal TX confirmed: ${tx.hash}`);
+    console.log(`Claim TX confirmed: ${tx.hash}`);
 
     res.json({
       success: true,
@@ -242,7 +171,7 @@ app.post('/api/player-heal', express.json(), async (req, res) => {
       blockNumber: receipt.blockNumber,
     });
   } catch (error) {
-    console.error('Heal TX failed:', error);
+    console.error('Claim TX failed:', error);
     res.status(500).json({
       error: 'Transaction failed',
       message: error.message,
@@ -260,6 +189,8 @@ app.listen(PORT, () => {
   ║                                                        ║
   ║   Battle Token: pathUSD                                ║
   ║   ${BATTLE_TOKEN}       ║
+  ║                                                        ║
+  ║   ESCROW MODEL: Stakes go to pot, winner claims all   ║
   ║                                                        ║
   ╚════════════════════════════════════════════════════════╝
   `);
