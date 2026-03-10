@@ -6,6 +6,24 @@ const { ethers } = require('ethers');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// TIP-20/ERC-20 Token Addresses on Tempo Testnet
+const TOKENS = {
+  pathUSD: '0x20c0000000000000000000000000000000000000',
+  AlphaUSD: '0x20c0000000000000000000000000000000000001',
+  BetaUSD: '0x20c0000000000000000000000000000000000002',
+  ThetaUSD: '0x20c0000000000000000000000000000000000003',
+};
+
+// Use pathUSD as the battle token
+const BATTLE_TOKEN = TOKENS.pathUSD;
+
+// ERC-20 ABI (just the functions we need)
+const ERC20_ABI = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function balanceOf(address account) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+];
+
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -20,9 +38,15 @@ function getAddressFromKey(privateKey) {
   }
 }
 
-// API endpoint to get game config (keeps private keys server-side for trainer TXs)
+// Helper: get provider
+function getProvider() {
+  return new ethers.JsonRpcProvider(
+    process.env.RPC_URL || 'https://rpc.moderato.tempo.xyz'
+  );
+}
+
+// API endpoint to get game config
 app.get('/api/config', (req, res) => {
-  // Derive addresses from private keys
   const trainers = [
     {
       name: process.env.TRAINER_1_NAME || 'Chad Blackstone',
@@ -42,15 +66,18 @@ app.get('/api/config', (req, res) => {
     rpcUrl: process.env.RPC_URL || 'https://rpc.moderato.tempo.xyz',
     chainId: parseInt(process.env.CHAIN_ID) || 42431,
     explorerUrl: process.env.EXPLORER_URL || 'https://explore.tempo.xyz',
+    playerAddress: getAddressFromKey(process.env.PLAYER_WALLET),
+    battleToken: BATTLE_TOKEN,
     trainers,
   });
 });
 
-// API endpoint for trainer attacks (server signs TX with trainer's private key)
-app.post('/api/trainer-attack', express.json(), async (req, res) => {
-  const { trainerIndex, playerAddress, amount } = req.body;
+// API endpoint for player attacks (ERC-20 token transfer)
+// Player deals damage → Trainer loses money → Trainer sends to Player
+app.post('/api/player-attack', express.json(), async (req, res) => {
+  const { trainerIndex, amount } = req.body;
 
-  // Get trainer private key based on index
+  // Get the trainer's private key (they're the one losing money)
   const privateKeys = [
     process.env.TRAINER_1_PRIVATE_KEY,
     process.env.TRAINER_2_PRIVATE_KEY,
@@ -58,25 +85,100 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
   ];
 
   const privateKey = privateKeys[trainerIndex];
+  const playerAddress = getAddressFromKey(process.env.PLAYER_WALLET);
 
   if (!privateKey) {
-    return res.status(400).json({ error: 'Trainer not configured' });
+    return res.status(400).json({ error: 'Trainer wallet not configured' });
   }
 
   try {
-    const provider = new ethers.JsonRpcProvider(
-      process.env.RPC_URL || 'https://rpc.moderato.tempo.xyz'
-    );
+    const provider = getProvider();
     const wallet = new ethers.Wallet(privateKey, provider);
 
-    // Send transaction from trainer to player
-    const tx = await wallet.sendTransaction({
-      to: playerAddress,
-      value: ethers.parseEther(amount.toString()),
-    });
+    // Create token contract instance
+    const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
+
+    // Get decimals (cache this in production)
+    let decimals;
+    try {
+      decimals = await token.decimals();
+    } catch {
+      decimals = 18; // Default to 18 if decimals() fails
+    }
+
+    // Parse amount with correct decimals
+    const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
+
+    console.log(`Player attacks! Trainer loses ${amount} pathUSD → sent to player`);
+
+    // Transfer tokens FROM trainer TO player (trainer loses money)
+    const tx = await token.transfer(playerAddress, tokenAmount);
 
     // Wait for confirmation
     const receipt = await tx.wait();
+
+    console.log(`Player attack TX confirmed: ${tx.hash}`);
+
+    res.json({
+      success: true,
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    });
+  } catch (error) {
+    console.error('Player attack TX failed:', error);
+    res.status(500).json({
+      error: 'Transaction failed',
+      message: error.message,
+    });
+  }
+});
+
+// API endpoint for trainer attacks (ERC-20 token transfer)
+// Trainer deals damage → Player loses money → Player sends to Trainer
+app.post('/api/trainer-attack', express.json(), async (req, res) => {
+  const { trainerIndex, amount } = req.body;
+
+  // Get trainer address (they receive the money)
+  const trainerAddresses = [
+    getAddressFromKey(process.env.TRAINER_1_PRIVATE_KEY),
+    getAddressFromKey(process.env.TRAINER_2_PRIVATE_KEY),
+    getAddressFromKey(process.env.TRAINER_3_PRIVATE_KEY),
+  ];
+
+  const trainerAddress = trainerAddresses[trainerIndex];
+  const playerPrivateKey = process.env.PLAYER_WALLET;
+
+  if (!playerPrivateKey) {
+    return res.status(400).json({ error: 'Player wallet not configured' });
+  }
+
+  try {
+    const provider = getProvider();
+    const wallet = new ethers.Wallet(playerPrivateKey, provider);
+
+    // Create token contract instance
+    const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
+
+    // Get decimals
+    let decimals;
+    try {
+      decimals = await token.decimals();
+    } catch {
+      decimals = 18;
+    }
+
+    // Parse amount with correct decimals
+    const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
+
+    console.log(`Trainer attacks! Player loses ${amount} pathUSD → sent to trainer`);
+
+    // Transfer tokens FROM player TO trainer (player loses money)
+    const tx = await token.transfer(trainerAddress, tokenAmount);
+
+    // Wait for confirmation
+    const receipt = await tx.wait();
+
+    console.log(`Trainer attack TX confirmed: ${tx.hash}`);
 
     res.json({
       success: true,
@@ -100,10 +202,8 @@ app.listen(PORT, () => {
   ║                                                        ║
   ║   Server running at http://localhost:${PORT}             ║
   ║                                                        ║
-  ║   Make sure you have:                                  ║
-  ║   1. Copied .env.example to .env                       ║
-  ║   2. Added your trainer private keys                   ║
-  ║   3. Funded trainer wallets with testnet tokens        ║
+  ║   Battle Token: pathUSD                                ║
+  ║   ${BATTLE_TOKEN}       ║
   ║                                                        ║
   ╚════════════════════════════════════════════════════════╝
   `);

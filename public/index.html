@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Baker Library Battle Arena</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -15,7 +15,7 @@
 
     body {
       font-family: 'Press Start 2P', cursive;
-      background-color: #c4cfa1;
+      background-color: #1a1a2e;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -23,21 +23,17 @@
       image-rendering: pixelated;
     }
 
-    /* Game Container */
     .game-container {
-      width: 480px;
-      height: 640px;
+      width: 640px;
+      height: 480px;
       background-color: #98cb98;
       border: 8px solid #2d2d2d;
       border-radius: 8px;
-      box-shadow:
-        0 0 0 4px #6b8c42,
-        8px 8px 0 0 rgba(0,0,0,0.3);
+      box-shadow: 0 0 0 4px #6b8c42, 8px 8px 0 0 rgba(0,0,0,0.3);
       overflow: hidden;
       position: relative;
     }
 
-    /* Screens */
     .screen {
       display: none;
       width: 100%;
@@ -49,200 +45,318 @@
       display: flex;
     }
 
-    /* Title Screen */
+    /* ========== TITLE SCREEN ========== */
     #title-screen {
       background: linear-gradient(180deg, #2d5a27 0%, #3d7a3d 50%, #98cb98 100%);
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      padding: 40px 20px;
-    }
-
-    .title-building {
-      width: 200px;
-      height: 150px;
-      position: relative;
-      margin-top: 20px;
-    }
-
-    /* Pixel art Baker Library */
-    .building-base {
-      width: 180px;
-      height: 100px;
-      background: #8b4513;
-      position: absolute;
-      bottom: 0;
-      left: 10px;
-      border: 4px solid #5d2e0c;
-    }
-
-    .building-roof {
-      width: 200px;
-      height: 40px;
-      background: #4a2810;
-      position: absolute;
-      bottom: 100px;
-      left: 0;
-      clip-path: polygon(0 100%, 50% 0, 100% 100%);
-    }
-
-    .building-door {
-      width: 30px;
-      height: 50px;
-      background: #2d1810;
-      position: absolute;
-      bottom: 0;
-      left: 75px;
-      border: 3px solid #1a0f08;
-    }
-
-    .building-window {
-      width: 25px;
-      height: 25px;
-      background: #ffffd0;
-      position: absolute;
-      border: 3px solid #5d2e0c;
-    }
-
-    .window-1 { bottom: 50px; left: 25px; }
-    .window-2 { bottom: 50px; right: 35px; }
-
-    .building-columns {
-      display: flex;
-      justify-content: space-around;
-      position: absolute;
-      bottom: 0;
-      left: 30px;
-      width: 140px;
-    }
-
-    .column {
-      width: 12px;
-      height: 80px;
-      background: #d4c4a8;
-      border: 2px solid #8b7355;
+      gap: 40px;
     }
 
     .game-title {
       color: #ffffd0;
       text-align: center;
-      text-shadow:
-        4px 4px 0 #2d2d2d,
-        -1px -1px 0 #2d2d2d,
-        1px -1px 0 #2d2d2d,
-        -1px 1px 0 #2d2d2d;
+      text-shadow: 4px 4px 0 #2d2d2d;
       line-height: 1.8;
     }
 
-    .game-title .main {
-      font-size: 18px;
-      display: block;
-    }
+    .game-title .main { font-size: 20px; display: block; }
+    .game-title .sub { font-size: 10px; display: block; margin-top: 10px; color: #90ee90; }
 
-    .game-title .sub {
-      font-size: 12px;
-      display: block;
-      margin-top: 10px;
-      color: #90ee90;
-    }
-
-    .connect-btn {
+    .start-btn {
       background: #3d7a3d;
       color: #ffffd0;
       border: 4px solid #2d5a27;
-      padding: 15px 30px;
+      padding: 15px 40px;
       font-family: 'Press Start 2P', cursive;
-      font-size: 10px;
+      font-size: 12px;
       cursor: pointer;
-      transition: all 0.1s;
+    }
+
+    .start-btn:hover { background: #4d9a4d; }
+
+    /* ========== NAME ENTRY SCREEN ========== */
+    #name-screen {
+      background: #2d5a27;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .name-prompt {
+      color: #ffffd0;
+      font-size: 14px;
+      text-shadow: 2px 2px 0 #1a3a17;
+    }
+
+    .name-input {
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      padding: 15px 20px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
+      width: 300px;
+      text-align: center;
       text-transform: uppercase;
     }
 
-    .connect-btn:hover {
-      background: #4d9a4d;
-      transform: scale(1.05);
+    .name-input:focus { outline: none; border-color: #4d9a4d; }
+
+    /* ========== OVERWORLD SCREEN ========== */
+    #overworld-screen {
+      background: #d4b896;
+      position: relative;
     }
 
-    .connect-btn:active {
-      transform: scale(0.95);
+    .overworld {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
-    .connect-btn.connected {
-      background: #2d5a27;
-      border-color: #1d3a17;
+    /* Floor pattern */
+    .floor {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background:
+        repeating-linear-gradient(90deg, #d4b896 0px, #d4b896 32px, #c9a882 32px, #c9a882 64px),
+        repeating-linear-gradient(0deg, #d4b896 0px, #d4b896 32px, #c9a882 32px, #c9a882 64px);
+      background-size: 64px 64px;
     }
 
-    .wallet-info {
-      font-size: 8px;
-      color: #ffffd0;
-      text-align: center;
-      margin-top: 10px;
+    /* Bookshelves (top wall) */
+    .bookshelf {
+      position: absolute;
+      background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
+      border: 3px solid #3d2314;
     }
 
-    /* Trainer Select Screen */
-    #trainer-select {
-      background: #98cb98;
-      padding: 20px;
+    .bookshelf::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
+      background: repeating-linear-gradient(
+        90deg,
+        #c41e3a 0px, #c41e3a 8px,
+        #1e90ff 8px, #1e90ff 16px,
+        #228b22 16px, #228b22 24px,
+        #ffd700 24px, #ffd700 32px
+      );
     }
 
-    .select-title {
-      font-size: 12px;
-      color: #2d2d2d;
-      text-align: center;
-      padding: 20px 0;
-      border-bottom: 4px solid #6b8c42;
-      margin-bottom: 20px;
+    .bookshelf-top { top: 0; left: 0; width: 100%; height: 50px; }
+    .bookshelf-left { top: 50px; left: 0; width: 40px; height: 200px; }
+    .bookshelf-right { top: 50px; right: 0; width: 40px; height: 200px; }
+
+    /* Study tables */
+    .table {
+      position: absolute;
+      background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+      border: 3px solid #654321;
+      border-radius: 4px;
     }
 
-    .trainer-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      padding: 10px;
-      flex: 1;
-      overflow-y: auto;
+    .table::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      right: 3px;
+      bottom: 3px;
+      background: #cd853f;
+      border-radius: 2px;
     }
 
-    .trainer-card {
-      background: #ffffd0;
-      border: 4px solid #2d2d2d;
-      padding: 15px;
-      cursor: pointer;
-      transition: all 0.1s;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .trainer-card:hover {
-      background: #ffffe0;
-      transform: translateX(5px);
-      box-shadow: 4px 4px 0 #2d2d2d;
-    }
-
-    .trainer-sprite {
-      width: 60px;
+    /* Service desk */
+    .service-desk {
+      position: absolute;
+      top: 180px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
       height: 60px;
-      background: #98cb98;
-      border: 3px solid #2d2d2d;
+      background: #654321;
+      border: 4px solid #3d2314;
       display: flex;
       justify-content: center;
       align-items: center;
+    }
+
+    .service-desk::after {
+      content: '?';
+      color: #ffffd0;
       font-size: 24px;
     }
 
-    .trainer-info h3 {
-      font-size: 10px;
+    /* Chandeliers */
+    .chandelier {
+      position: absolute;
+      width: 40px;
+      height: 30px;
+      background: radial-gradient(ellipse, #ffd700 0%, #b8860b 100%);
+      border-radius: 50% 50% 30% 30%;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    /* Windows */
+    .window {
+      position: absolute;
+      top: 60px;
+      width: 50px;
+      height: 80px;
+      background: linear-gradient(180deg, #87ceeb 0%, #add8e6 100%);
+      border: 6px solid #654321;
+    }
+
+    .window::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 4px;
+      height: 100%;
+      background: #654321;
+      transform: translateX(-50%);
+    }
+
+    .window::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: #654321;
+      transform: translateY(-50%);
+    }
+
+    /* ========== PIXEL ART SPRITES ========== */
+    .sprite {
+      position: absolute;
+      width: 32px;
+      height: 48px;
+      transition: left 0.1s, top 0.1s;
+    }
+
+    /* Human sprite base */
+    .human-sprite {
+      position: relative;
+      width: 32px;
+      height: 48px;
+    }
+
+    /* Head */
+    .sprite-head {
+      position: absolute;
+      top: 0;
+      left: 6px;
+      width: 20px;
+      height: 20px;
+      background: #fdbf6f;
+      border-radius: 50% 50% 40% 40%;
+      border: 2px solid #d4a05a;
+    }
+
+    /* Hair */
+    .sprite-hair {
+      position: absolute;
+      top: -2px;
+      left: 4px;
+      width: 24px;
+      height: 12px;
+      border-radius: 50% 50% 0 0;
+    }
+
+    /* Body */
+    .sprite-body {
+      position: absolute;
+      top: 18px;
+      left: 4px;
+      width: 24px;
+      height: 20px;
+      border-radius: 4px 4px 0 0;
+      border: 2px solid rgba(0,0,0,0.2);
+    }
+
+    /* Legs */
+    .sprite-legs {
+      position: absolute;
+      top: 36px;
+      left: 8px;
+      width: 16px;
+      height: 12px;
+      background: #2d2d2d;
+      border-radius: 0 0 4px 4px;
+    }
+
+    /* Player specific colors (HBS Crimson) */
+    .player-sprite .sprite-hair { background: #4a3728; }
+    .player-sprite .sprite-body { background: #a51c30; }
+
+    /* Chad - PE Bro (Blue suit, slicked hair) */
+    .chad-sprite .sprite-hair { background: #2d2d2d; height: 8px; }
+    .chad-sprite .sprite-body { background: #1e3a5f; }
+    .chad-sprite .sprite-legs { background: #1e3a5f; }
+
+    /* Priya - Founder (Casual, dark hair) */
+    .priya-sprite .sprite-hair { background: #1a1a1a; height: 14px; border-radius: 40% 40% 20% 20%; }
+    .priya-sprite .sprite-body { background: #4a4a4a; }
+    .priya-sprite .sprite-head { background: #c68642; border-color: #a67232; }
+
+    /* Francois - Consultant (Gray suit) */
+    .francois-sprite .sprite-hair { background: #5a4a3a; }
+    .francois-sprite .sprite-body { background: #4a4a5a; }
+    .francois-sprite .sprite-legs { background: #3a3a4a; }
+
+    /* Sprite name label */
+    .sprite-label {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 6px;
       color: #2d2d2d;
-      margin-bottom: 8px;
+      white-space: nowrap;
+      background: rgba(255,255,255,0.8);
+      padding: 2px 4px;
+      border-radius: 2px;
     }
 
-    .trainer-info p {
+    /* Interaction prompt */
+    .interact-prompt {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2d2d2d;
+      color: #ffffd0;
+      padding: 10px 20px;
+      font-size: 10px;
+      border: 4px solid #ffffd0;
+      z-index: 100;
+    }
+
+    .interact-prompt.active { display: block; }
+
+    /* Movement instructions */
+    .movement-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
       font-size: 7px;
-      color: #555;
-      line-height: 1.6;
+      color: #654321;
+      background: rgba(255,255,255,0.7);
+      padding: 5px 8px;
+      border-radius: 4px;
     }
 
-    /* Battle Screen */
+    /* ========== BATTLE SCREEN ========== */
     #battle-screen {
       background: #98cb98;
     }
@@ -254,38 +368,34 @@
       overflow: hidden;
     }
 
-    /* Opponent Area (top right) */
     .opponent-area {
       position: absolute;
       top: 20px;
-      right: 20px;
+      right: 40px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
     }
 
-    .opponent-sprite {
-      width: 120px;
+    .battle-sprite {
+      width: 100px;
       height: 120px;
-      background: #ffffd0;
-      border: 4px solid #2d2d2d;
+      margin-bottom: 10px;
       display: flex;
       justify-content: center;
-      align-items: center;
-      font-size: 48px;
-      margin-bottom: 10px;
-      transition: all 0.1s;
+      align-items: flex-end;
+      transform: scale(2);
+      transform-origin: bottom center;
     }
 
-    .opponent-sprite.hit {
+    .battle-sprite.hit {
       animation: shake 0.3s ease-in-out;
-      background: #ff6b6b;
     }
 
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
+      0%, 100% { transform: scale(2) translateX(0); }
+      25% { transform: scale(2) translateX(-5px); }
+      75% { transform: scale(2) translateX(5px); }
     }
 
     .hp-bar-container {
@@ -315,54 +425,20 @@
       transition: width 0.5s ease-out;
     }
 
-    .hp-fill.low {
-      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
-    }
+    .hp-fill.low { background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); }
+    .hp-fill.critical { background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%); }
 
-    .hp-fill.critical {
-      background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
-    }
-
-    /* Player Area (bottom left) */
     .player-area {
       position: absolute;
       bottom: 20px;
-      left: 20px;
+      left: 40px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
     }
 
-    .player-sprite {
-      width: 100px;
-      height: 100px;
-      background: #ffffd0;
-      border: 4px solid #2d2d2d;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 40px;
-      margin-top: 10px;
-      transition: all 0.1s;
-    }
-
-    .player-sprite.attacking {
-      animation: attack 0.3s ease-in-out;
-    }
-
-    @keyframes attack {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(30px); }
-    }
-
-    .player-sprite.hit {
-      animation: shake 0.3s ease-in-out;
-      background: #ff6b6b;
-    }
-
-    /* Battle UI */
     .battle-ui {
-      height: 200px;
+      height: 180px;
       background: #2d2d2d;
       display: flex;
       flex-direction: column;
@@ -379,24 +455,9 @@
       line-height: 1.8;
     }
 
-    .battle-log .log-entry {
-      margin-bottom: 5px;
-    }
-
-    .battle-log .tx-hash {
-      color: #2563eb;
-      text-decoration: underline;
-      cursor: pointer;
-      word-break: break-all;
-    }
-
-    .battle-log .damage {
-      color: #dc2626;
-    }
-
-    .battle-log .heal {
-      color: #16a34a;
-    }
+    .battle-log .log-entry { margin-bottom: 5px; }
+    .battle-log .tx-hash { color: #2563eb; text-decoration: underline; cursor: pointer; word-break: break-all; }
+    .battle-log .damage { color: #dc2626; }
 
     .move-buttons {
       display: grid;
@@ -408,39 +469,19 @@
     .move-btn {
       background: #ffffd0;
       border: 4px solid #6b8c42;
-      padding: 12px 8px;
+      padding: 10px 8px;
       font-family: 'Press Start 2P', cursive;
       font-size: 8px;
       cursor: pointer;
-      transition: all 0.1s;
       text-align: left;
     }
 
-    .move-btn:hover:not(:disabled) {
-      background: #ffffe0;
-      border-color: #4a6b2a;
-    }
+    .move-btn:hover:not(:disabled) { background: #ffffe0; }
+    .move-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .move-name { display: block; margin-bottom: 4px; }
+    .move-damage { font-size: 6px; color: #666; }
 
-    .move-btn:active:not(:disabled) {
-      transform: scale(0.98);
-    }
-
-    .move-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .move-name {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .move-damage {
-      font-size: 6px;
-      color: #666;
-    }
-
-    /* Result Screen */
+    /* ========== RESULT SCREEN ========== */
     #result-screen {
       background: #2d2d2d;
       justify-content: center;
@@ -457,56 +498,24 @@
       overflow-y: auto;
     }
 
-    .result-title {
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
-
-    .result-title.win {
-      color: #16a34a;
-    }
-
-    .result-title.lose {
-      color: #dc2626;
-    }
-
-    .result-stats {
-      font-size: 8px;
-      line-height: 2;
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .tx-list {
-      font-size: 7px;
-      text-align: left;
-      max-height: 150px;
-      overflow-y: auto;
-      background: #f0f0f0;
-      padding: 10px;
-      margin-bottom: 20px;
-    }
-
-    .tx-list a {
-      color: #2563eb;
-      word-break: break-all;
-    }
+    .result-title { font-size: 16px; margin-bottom: 20px; }
+    .result-title.win { color: #16a34a; }
+    .result-title.lose { color: #dc2626; }
+    .result-stats { font-size: 8px; line-height: 2; margin-bottom: 20px; text-align: left; }
+    .tx-list { font-size: 7px; text-align: left; max-height: 120px; overflow-y: auto; background: #f0f0f0; padding: 10px; margin-bottom: 20px; }
+    .tx-list a { color: #2563eb; word-break: break-all; }
 
     .play-again-btn {
       background: #3d7a3d;
       color: #ffffd0;
       border: 4px solid #2d5a27;
-      padding: 15px 30px;
+      padding: 12px 25px;
       font-family: 'Press Start 2P', cursive;
       font-size: 8px;
       cursor: pointer;
     }
 
-    .play-again-btn:hover {
-      background: #4d9a4d;
-    }
-
-    /* Loading Overlay */
+    /* ========== LOADING OVERLAY ========== */
     .loading-overlay {
       display: none;
       position: absolute;
@@ -520,73 +529,104 @@
       z-index: 100;
     }
 
-    .loading-overlay.active {
-      display: flex;
-    }
-
-    .loading-text {
-      color: #ffffd0;
-      font-size: 10px;
-      text-align: center;
-      line-height: 2;
-    }
-
-    .spinner {
-      width: 30px;
-      height: 30px;
-      border: 4px solid #ffffd0;
-      border-top-color: transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Trainer emojis/sprites */
-    .chad { background: #fef3c7; }
-    .priya { background: #dbeafe; }
-    .francois { background: #f3e8ff; }
+    .loading-overlay.active { display: flex; }
+    .loading-text { color: #ffffd0; font-size: 10px; text-align: center; line-height: 2; }
+    .spinner { width: 30px; height: 30px; border: 4px solid #ffffd0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="game-container">
     <!-- Title Screen -->
     <div id="title-screen" class="screen active">
-      <div class="title-building">
-        <div class="building-roof"></div>
-        <div class="building-base">
-          <div class="building-window window-1"></div>
-          <div class="building-window window-2"></div>
-          <div class="building-door"></div>
-          <div class="building-columns">
-            <div class="column"></div>
-            <div class="column"></div>
-            <div class="column"></div>
-            <div class="column"></div>
-          </div>
-        </div>
-      </div>
-
       <div class="game-title">
         <span class="main">BAKER LIBRARY</span>
         <span class="main">BATTLE ARENA</span>
         <span class="sub">Tempo Testnet Edition</span>
       </div>
-
-      <div>
-        <button class="connect-btn" id="connect-btn">Connect Wallet</button>
-        <div class="wallet-info" id="wallet-info"></div>
-      </div>
+      <button class="start-btn" id="start-btn">PRESS START</button>
     </div>
 
-    <!-- Trainer Select Screen -->
-    <div id="trainer-select" class="screen">
-      <div class="select-title">CHOOSE YOUR OPPONENT</div>
-      <div class="trainer-list" id="trainer-list">
-        <!-- Populated by JS -->
+    <!-- Name Entry Screen -->
+    <div id="name-screen" class="screen">
+      <div class="name-prompt">ENTER YOUR NAME</div>
+      <input type="text" class="name-input" id="name-input" maxlength="12" placeholder="YOUR NAME">
+      <button class="start-btn" id="name-submit">BEGIN</button>
+    </div>
+
+    <!-- Overworld Screen -->
+    <div id="overworld-screen" class="screen">
+      <div class="overworld" id="overworld">
+        <div class="floor"></div>
+
+        <!-- Bookshelves -->
+        <div class="bookshelf bookshelf-top"></div>
+        <div class="bookshelf bookshelf-left"></div>
+        <div class="bookshelf bookshelf-right"></div>
+
+        <!-- Windows -->
+        <div class="window" style="left: 100px;"></div>
+        <div class="window" style="left: 200px;"></div>
+        <div class="window" style="left: 400px;"></div>
+        <div class="window" style="left: 500px;"></div>
+
+        <!-- Chandeliers -->
+        <div class="chandelier" style="top: 100px; left: 150px;"></div>
+        <div class="chandelier" style="top: 100px; left: 320px;"></div>
+        <div class="chandelier" style="top: 100px; left: 490px;"></div>
+
+        <!-- Service Desk -->
+        <div class="service-desk"></div>
+
+        <!-- Study Tables -->
+        <div class="table" style="top: 280px; left: 80px; width: 80px; height: 50px;"></div>
+        <div class="table" style="top: 280px; left: 480px; width: 80px; height: 50px;"></div>
+        <div class="table" style="top: 370px; left: 250px; width: 140px; height: 50px;"></div>
+
+        <!-- Player sprite (positioned by JS) -->
+        <div class="sprite" id="player">
+          <div class="human-sprite player-sprite">
+            <div class="sprite-hair"></div>
+            <div class="sprite-head"></div>
+            <div class="sprite-body"></div>
+            <div class="sprite-legs"></div>
+          </div>
+          <div class="sprite-label" id="player-label">YOU</div>
+        </div>
+
+        <!-- Trainer sprites -->
+        <div class="sprite trainer" id="trainer-0" data-trainer="0" style="left: 100px; top: 300px;">
+          <div class="human-sprite chad-sprite">
+            <div class="sprite-hair"></div>
+            <div class="sprite-head"></div>
+            <div class="sprite-body"></div>
+            <div class="sprite-legs"></div>
+          </div>
+          <div class="sprite-label">CHAD</div>
+        </div>
+
+        <div class="sprite trainer" id="trainer-1" data-trainer="1" style="left: 500px; top: 300px;">
+          <div class="human-sprite priya-sprite">
+            <div class="sprite-hair"></div>
+            <div class="sprite-head"></div>
+            <div class="sprite-body"></div>
+            <div class="sprite-legs"></div>
+          </div>
+          <div class="sprite-label">PRIYA</div>
+        </div>
+
+        <div class="sprite trainer" id="trainer-2" data-trainer="2" style="left: 300px; top: 390px;">
+          <div class="human-sprite francois-sprite">
+            <div class="sprite-hair"></div>
+            <div class="sprite-head"></div>
+            <div class="sprite-body"></div>
+            <div class="sprite-legs"></div>
+          </div>
+          <div class="sprite-label">FRANCOIS</div>
+        </div>
+
+        <div class="interact-prompt" id="interact-prompt">Press SPACE to battle!</div>
+        <div class="movement-hint">Arrow keys to move</div>
       </div>
     </div>
 
@@ -594,7 +634,14 @@
     <div id="battle-screen" class="screen">
       <div class="battle-scene">
         <div class="opponent-area">
-          <div class="opponent-sprite" id="opponent-sprite">👔</div>
+          <div class="battle-sprite" id="opponent-sprite">
+            <div class="human-sprite chad-sprite">
+              <div class="sprite-hair"></div>
+              <div class="sprite-head"></div>
+              <div class="sprite-body"></div>
+              <div class="sprite-legs"></div>
+            </div>
+          </div>
           <div class="hp-bar-container">
             <div class="hp-label">
               <span id="opponent-name">OPPONENT</span>
@@ -609,14 +656,21 @@
         <div class="player-area">
           <div class="hp-bar-container">
             <div class="hp-label">
-              <span>YOU</span>
+              <span id="player-battle-name">YOU</span>
               <span id="player-hp-text">100/100</span>
             </div>
             <div class="hp-bar">
               <div class="hp-fill" id="player-hp-fill" style="width: 100%"></div>
             </div>
           </div>
-          <div class="player-sprite" id="player-sprite">🎓</div>
+          <div class="battle-sprite" id="player-battle-sprite">
+            <div class="human-sprite player-sprite">
+              <div class="sprite-hair"></div>
+              <div class="sprite-head"></div>
+              <div class="sprite-body"></div>
+              <div class="sprite-legs"></div>
+            </div>
+          </div>
         </div>
 
         <div class="loading-overlay" id="loading-overlay">
@@ -631,7 +685,7 @@
         <div class="battle-log" id="battle-log">
           <div class="log-entry">Battle started!</div>
         </div>
-        <div class="move-buttons" id="move-buttons">
+        <div class="move-buttons">
           <button class="move-btn" data-move="0">
             <span class="move-name">Cold Email</span>
             <span class="move-damage">10 DMG / 0.01 USD</span>
@@ -656,13 +710,9 @@
     <div id="result-screen" class="screen">
       <div class="result-content">
         <div class="result-title" id="result-title">VICTORY!</div>
-        <div class="result-stats" id="result-stats">
-          <!-- Populated by JS -->
-        </div>
-        <div class="tx-list" id="tx-list">
-          <!-- Populated by JS -->
-        </div>
-        <button class="play-again-btn" id="play-again-btn">Play Again</button>
+        <div class="result-stats" id="result-stats"></div>
+        <div class="tx-list" id="tx-list"></div>
+        <button class="play-again-btn" id="play-again-btn">Continue</button>
       </div>
     </div>
   </div>
@@ -672,8 +722,7 @@
     // GAME STATE
     // ========================================
     let config = null;
-    let provider = null;
-    let signer = null;
+    let playerName = 'PLAYER';
     let playerAddress = null;
     let currentTrainer = null;
     let playerHP = 100;
@@ -681,6 +730,17 @@
     let battleTxs = [];
     let isPlayerTurn = true;
     let battleActive = false;
+
+    // Player position
+    let playerX = 300;
+    let playerY = 400;
+    const MOVE_SPEED = 8;
+    const SPRITE_WIDTH = 32;
+    const SPRITE_HEIGHT = 48;
+
+    // Trainer positions (will be read from DOM)
+    let trainers = [];
+    let nearbyTrainer = null;
 
     // Move definitions
     const MOVES = [
@@ -690,8 +750,7 @@
       { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70 },
     ];
 
-    // Trainer emoji mapping
-    const TRAINER_EMOJIS = ['💼', '🚀', '📊'];
+    const TRAINER_SPRITES = ['chad-sprite', 'priya-sprite', 'francois-sprite'];
     const TRAINER_TAUNTS = [
       "I modeled this outcome three ways.",
       "My Series A closes Thursday.",
@@ -702,6 +761,8 @@
     // INITIALIZATION
     // ========================================
     async function init() {
+      console.log('Initializing game...');
+
       // Load config from server
       try {
         const response = await fetch('/api/config');
@@ -713,9 +774,17 @@
         return;
       }
 
+      playerAddress = config.playerAddress;
+
       // Set up event listeners
-      document.getElementById('connect-btn').addEventListener('click', connectWallet);
-      document.getElementById('play-again-btn').addEventListener('click', resetGame);
+      document.getElementById('start-btn').addEventListener('click', () => showScreen('name-screen'));
+
+      document.getElementById('name-submit').addEventListener('click', submitName);
+      document.getElementById('name-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitName();
+      });
+
+      document.getElementById('play-again-btn').addEventListener('click', () => showScreen('overworld-screen'));
 
       // Move button listeners
       document.querySelectorAll('.move-btn').forEach(btn => {
@@ -725,73 +794,36 @@
           }
         });
       });
+
+      // Keyboard controls
+      document.addEventListener('keydown', handleKeyDown);
+
+      // Initialize trainer positions
+      initTrainers();
+
+      console.log('Game initialized!');
     }
 
-    // ========================================
-    // WALLET CONNECTION
-    // ========================================
-    async function connectWallet() {
-      if (!window.ethereum) {
-        alert('MetaMask not found! Please install MetaMask to play.');
-        return;
-      }
+    function submitName() {
+      const input = document.getElementById('name-input');
+      playerName = input.value.trim().toUpperCase() || 'PLAYER';
+      document.getElementById('player-label').textContent = playerName;
+      document.getElementById('player-battle-name').textContent = playerName;
+      showScreen('overworld-screen');
+    }
 
-      try {
-        // Request accounts
-        const accounts = await window.ethereum.request({
-          method: 'eth_requestAccounts'
+    function initTrainers() {
+      document.querySelectorAll('.trainer').forEach((el, index) => {
+        const rect = el.getBoundingClientRect();
+        const parent = document.getElementById('overworld').getBoundingClientRect();
+        trainers.push({
+          element: el,
+          index: parseInt(el.dataset.trainer),
+          x: parseInt(el.style.left),
+          y: parseInt(el.style.top),
+          name: config.trainers[index]?.name || `Trainer ${index + 1}`
         });
-        playerAddress = accounts[0];
-
-        // Check/switch network
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        const targetChainId = '0x' + config.chainId.toString(16);
-
-        if (chainId !== targetChainId) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: targetChainId }],
-            });
-          } catch (switchError) {
-            // Chain not added, try to add it
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: targetChainId,
-                  chainName: 'Tempo Testnet (Moderato)',
-                  nativeCurrency: { name: 'USD', symbol: 'USD', decimals: 18 },
-                  rpcUrls: [config.rpcUrl],
-                  blockExplorerUrls: [config.explorerUrl],
-                }],
-              });
-            } else {
-              throw switchError;
-            }
-          }
-        }
-
-        // Set up ethers
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-
-        // Update UI
-        const btn = document.getElementById('connect-btn');
-        btn.textContent = 'Connected!';
-        btn.classList.add('connected');
-
-        const shortAddress = playerAddress.slice(0, 6) + '...' + playerAddress.slice(-4);
-        document.getElementById('wallet-info').textContent = shortAddress;
-
-        // Show trainer select after short delay
-        setTimeout(() => showScreen('trainer-select'), 500);
-        populateTrainerList();
-
-      } catch (error) {
-        console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + error.message);
-      }
+      });
     }
 
     // ========================================
@@ -800,27 +832,95 @@
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
+
+      if (screenId === 'overworld-screen') {
+        updatePlayerPosition();
+      }
     }
 
-    function populateTrainerList() {
-      const list = document.getElementById('trainer-list');
-      list.innerHTML = '';
+    // ========================================
+    // OVERWORLD MOVEMENT
+    // ========================================
+    function handleKeyDown(e) {
+      const activeScreen = document.querySelector('.screen.active');
+      if (activeScreen.id !== 'overworld-screen') return;
 
-      config.trainers.forEach((trainer, index) => {
-        if (!trainer.address) return; // Skip unconfigured trainers
+      const bounds = {
+        left: 50,
+        right: 640 - SPRITE_WIDTH - 10,
+        top: 150,
+        bottom: 480 - SPRITE_HEIGHT - 10
+      };
 
-        const card = document.createElement('div');
-        card.className = 'trainer-card';
-        card.innerHTML = `
-          <div class="trainer-sprite">${TRAINER_EMOJIS[index] || '👤'}</div>
-          <div class="trainer-info">
-            <h3>${trainer.name}</h3>
-            <p>"${TRAINER_TAUNTS[index] || 'Ready to battle!'}"</p>
-          </div>
-        `;
-        card.addEventListener('click', () => startBattle(index));
-        list.appendChild(card);
-      });
+      let newX = playerX;
+      let newY = playerY;
+
+      switch(e.key) {
+        case 'ArrowUp':
+        case 'w':
+          newY = Math.max(bounds.top, playerY - MOVE_SPEED);
+          break;
+        case 'ArrowDown':
+        case 's':
+          newY = Math.min(bounds.bottom, playerY + MOVE_SPEED);
+          break;
+        case 'ArrowLeft':
+        case 'a':
+          newX = Math.max(bounds.left, playerX - MOVE_SPEED);
+          break;
+        case 'ArrowRight':
+        case 'd':
+          newX = Math.min(bounds.right, playerX + MOVE_SPEED);
+          break;
+        case ' ':
+          if (nearbyTrainer !== null) {
+            startBattle(nearbyTrainer);
+          }
+          return;
+      }
+
+      // Check collision with trainers
+      if (!checkTrainerCollision(newX, newY)) {
+        playerX = newX;
+        playerY = newY;
+        updatePlayerPosition();
+      }
+
+      checkNearbyTrainer();
+    }
+
+    function checkTrainerCollision(x, y) {
+      for (const trainer of trainers) {
+        const dx = Math.abs((x + SPRITE_WIDTH/2) - (trainer.x + SPRITE_WIDTH/2));
+        const dy = Math.abs((y + SPRITE_HEIGHT/2) - (trainer.y + SPRITE_HEIGHT/2));
+        if (dx < SPRITE_WIDTH && dy < SPRITE_HEIGHT) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function checkNearbyTrainer() {
+      nearbyTrainer = null;
+      const prompt = document.getElementById('interact-prompt');
+
+      for (const trainer of trainers) {
+        const dx = Math.abs((playerX + SPRITE_WIDTH/2) - (trainer.x + SPRITE_WIDTH/2));
+        const dy = Math.abs((playerY + SPRITE_HEIGHT/2) - (trainer.y + SPRITE_HEIGHT/2));
+        if (dx < SPRITE_WIDTH * 1.5 && dy < SPRITE_HEIGHT * 1.5) {
+          nearbyTrainer = trainer.index;
+          prompt.classList.add('active');
+          return;
+        }
+      }
+
+      prompt.classList.remove('active');
+    }
+
+    function updatePlayerPosition() {
+      const player = document.getElementById('player');
+      player.style.left = playerX + 'px';
+      player.style.top = playerY + 'px';
     }
 
     // ========================================
@@ -841,7 +941,18 @@
 
       // Update UI
       document.getElementById('opponent-name').textContent = currentTrainer.name.toUpperCase();
-      document.getElementById('opponent-sprite').textContent = TRAINER_EMOJIS[trainerIndex] || '👤';
+
+      // Update opponent sprite
+      const opponentSprite = document.getElementById('opponent-sprite');
+      opponentSprite.innerHTML = `
+        <div class="human-sprite ${TRAINER_SPRITES[trainerIndex]}">
+          <div class="sprite-hair"></div>
+          <div class="sprite-head"></div>
+          <div class="sprite-body"></div>
+          <div class="sprite-legs"></div>
+        </div>
+      `;
+
       updateHPBars();
 
       // Clear battle log
@@ -850,9 +961,7 @@
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
-      // Enable move buttons
       setMovesEnabled(true);
-
       showScreen('battle-screen');
     }
 
@@ -863,7 +972,6 @@
       isPlayerTurn = false;
       setMovesEnabled(false);
 
-      // Check hit
       const hit = Math.random() < move.hitChance;
 
       if (!hit) {
@@ -872,51 +980,52 @@
         return;
       }
 
-      // Show loading
-      showLoading('Sending TX to opponent...');
+      showLoading('Sending TX...');
 
       try {
-        // Send TX from player to trainer
-        const tx = await signer.sendTransaction({
-          to: currentTrainer.address,
-          value: ethers.parseEther(move.txAmount),
+        addBattleLog(`You used ${move.name}!`);
+
+        const response = await fetch('/api/player-attack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trainerIndex: currentTrainer.index,
+            amount: move.txAmount
+          })
         });
 
-        addBattleLog(`You used ${move.name}!`);
-        showLoading('Waiting for confirmation...');
-
-        const receipt = await tx.wait();
+        const result = await response.json();
         hideLoading();
 
-        // Record TX
+        if (!result.success) {
+          throw new Error(result.message || 'TX failed');
+        }
+
         battleTxs.push({
           from: 'player',
-          hash: tx.hash,
+          hash: result.txHash,
           amount: move.txAmount,
           move: move.name
         });
 
-        // Apply damage
         trainerHP = Math.max(0, trainerHP - move.damage);
         updateHPBars();
         animateHit('opponent');
 
         addBattleLog(`<span class="damage">Dealt ${move.damage} damage!</span>`);
-        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">TX: ${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}</a>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...</a>`);
 
-        // Check win
         if (trainerHP <= 0) {
           endBattle(true);
           return;
         }
 
-        // Trainer turn
         setTimeout(() => trainerTurn(), 1500);
 
       } catch (error) {
         hideLoading();
         console.error('TX failed:', error);
-        addBattleLog(`Transaction failed! ${error.message}`);
+        addBattleLog(`TX failed: ${error.message}`);
         isPlayerTurn = true;
         setMovesEnabled(true);
       }
@@ -925,11 +1034,8 @@
     async function trainerTurn() {
       if (!battleActive) return;
 
-      // AI chooses a move (weighted random)
       const moveIndex = Math.floor(Math.random() * MOVES.length);
       const move = MOVES[moveIndex];
-
-      // Check hit
       const hit = Math.random() < move.hitChance;
 
       addBattleLog(`${currentTrainer.name} used ${move.name}!`);
@@ -943,16 +1049,14 @@
         return;
       }
 
-      showLoading('Trainer sending TX...');
+      showLoading('Trainer attacking...');
 
       try {
-        // Server signs and sends TX from trainer wallet
         const response = await fetch('/api/trainer-attack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trainerIndex: currentTrainer.index,
-            playerAddress: playerAddress,
             amount: move.txAmount
           })
         });
@@ -961,10 +1065,9 @@
         hideLoading();
 
         if (!result.success) {
-          throw new Error(result.message || 'Trainer TX failed');
+          throw new Error(result.message || 'TX failed');
         }
 
-        // Record TX
         battleTxs.push({
           from: 'trainer',
           hash: result.txHash,
@@ -972,28 +1075,24 @@
           move: move.name
         });
 
-        // Apply damage
         playerHP = Math.max(0, playerHP - move.damage);
         updateHPBars();
         animateHit('player');
 
         addBattleLog(`<span class="damage">You took ${move.damage} damage!</span>`);
-        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...${result.txHash.slice(-8)}</a>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...</a>`);
 
-        // Check loss
         if (playerHP <= 0) {
           endBattle(false);
           return;
         }
 
-        // Player turn
         isPlayerTurn = true;
         setMovesEnabled(true);
 
       } catch (error) {
         hideLoading();
-        console.error('Trainer TX failed:', error);
-        addBattleLog(`Trainer's attack failed! Your turn.`);
+        addBattleLog(`Trainer TX failed. Your turn.`);
         isPlayerTurn = true;
         setMovesEnabled(true);
       }
@@ -1003,13 +1102,11 @@
       battleActive = false;
       setMovesEnabled(false);
 
-      // Calculate stats
       const playerTxs = battleTxs.filter(tx => tx.from === 'player');
       const trainerTxs = battleTxs.filter(tx => tx.from === 'trainer');
       const playerTotal = playerTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
       const trainerTotal = trainerTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
-      // Update result screen
       const title = document.getElementById('result-title');
       title.textContent = playerWon ? 'VICTORY!' : 'DEFEAT!';
       title.className = 'result-title ' + (playerWon ? 'win' : 'lose');
@@ -1017,15 +1114,15 @@
       document.getElementById('result-stats').innerHTML = `
         <div>Opponent: ${currentTrainer.name}</div>
         <div>Total TXs: ${battleTxs.length}</div>
-        <div>You sent: ${playerTotal.toFixed(3)} USD (${playerTxs.length} TXs)</div>
-        <div>You received: ${trainerTotal.toFixed(3)} USD (${trainerTxs.length} TXs)</div>
-        <div>Net: ${(trainerTotal - playerTotal).toFixed(3)} USD</div>
+        <div>You won: ${playerTotal.toFixed(3)} USD</div>
+        <div>You lost: ${trainerTotal.toFixed(3)} USD</div>
+        <div>Net: ${(playerTotal - trainerTotal).toFixed(3)} USD</div>
       `;
 
       document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
         <div>
-          ${tx.from === 'player' ? '➡️' : '⬅️'} ${tx.move}:
-          <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 20)}...</a>
+          ${tx.from === 'player' ? '+' : '-'} ${tx.move}:
+          <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
         </div>
       `).join('');
 
@@ -1036,14 +1133,12 @@
     // UI HELPERS
     // ========================================
     function updateHPBars() {
-      // Player HP
       const playerFill = document.getElementById('player-hp-fill');
       const playerPercent = (playerHP / 100) * 100;
       playerFill.style.width = playerPercent + '%';
       playerFill.className = 'hp-fill' + (playerPercent <= 20 ? ' critical' : playerPercent <= 50 ? ' low' : '');
       document.getElementById('player-hp-text').textContent = `${playerHP}/100`;
 
-      // Trainer HP
       const trainerFill = document.getElementById('opponent-hp-fill');
       const trainerPercent = (trainerHP / 100) * 100;
       trainerFill.style.width = trainerPercent + '%';
@@ -1052,15 +1147,13 @@
     }
 
     function animateHit(target) {
-      const sprite = document.getElementById(target === 'player' ? 'player-sprite' : 'opponent-sprite');
+      const sprite = document.getElementById(target === 'player' ? 'player-battle-sprite' : 'opponent-sprite');
       sprite.classList.add('hit');
       setTimeout(() => sprite.classList.remove('hit'), 300);
     }
 
     function setMovesEnabled(enabled) {
-      document.querySelectorAll('.move-btn').forEach(btn => {
-        btn.disabled = !enabled;
-      });
+      document.querySelectorAll('.move-btn').forEach(btn => btn.disabled = !enabled);
     }
 
     function addBattleLog(message) {
@@ -1081,14 +1174,15 @@
       document.getElementById('loading-overlay').classList.remove('active');
     }
 
-    function resetGame() {
-      showScreen('trainer-select');
-    }
-
     // ========================================
     // START
     // ========================================
-    init();
+    document.addEventListener('DOMContentLoaded', () => {
+      init().catch(err => {
+        console.error('Init failed:', err);
+        alert('Game failed to initialize: ' + err.message);
+      });
+    });
   </script>
 </body>
 </html>
