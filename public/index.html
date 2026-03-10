@@ -1062,12 +1062,14 @@
     // Budget System
     let playerBudget = 0;
     let trainerBudget = 0;
-    let currentRound = 0; // 0 = Chad, 1 = Priya, 2 = François
+    let gamesWon = 0; // 0, 1, 2 - determines budget for next game
+    let defeatedTrainers = []; // indices of trainers already beaten
 
-    const ROUND_BUDGETS = {
-      0: 2.00,  // Round 1 vs Chad
-      1: 1.50,  // Round 2 vs Priya
-      2: 1.00,  // Round 3 vs François
+    // Budget based on game number (not trainer)
+    const GAME_BUDGETS = {
+      0: 2.00,  // Game 1: $2.00
+      1: 1.50,  // Game 2: $1.50
+      2: 1.00,  // Game 3: $1.00
     };
 
     // Heal Moves
@@ -1390,6 +1392,7 @@
 
       if (screenId === 'overworld-screen') {
         updatePlayerPosition();
+        updateDefeatedTrainers();
         checkNearbyTrainer();
         // Focus game container for keyboard input
         document.getElementById('game-container').focus();
@@ -1475,13 +1478,40 @@
         const dx = Math.abs((playerX + SPRITE_WIDTH/2) - (trainer.x + SPRITE_WIDTH/2));
         const dy = Math.abs((playerY + SPRITE_HEIGHT/2) - (trainer.y + SPRITE_HEIGHT/2));
         if (dx < SPRITE_WIDTH * 1.5 && dy < SPRITE_HEIGHT * 1.5) {
+          // Check if trainer is already defeated
+          if (defeatedTrainers.includes(trainer.index)) {
+            prompt.textContent = `${trainer.name} defeated!`;
+            prompt.classList.add('active');
+            nearbyTrainer = null; // Can't battle defeated trainers
+            return;
+          }
           nearbyTrainer = trainer.index;
+          prompt.textContent = 'Press SPACE to battle!';
           prompt.classList.add('active');
           return;
         }
       }
 
       prompt.classList.remove('active');
+    }
+
+    function updateDefeatedTrainers() {
+      // Visually mark defeated trainers in overworld
+      trainers.forEach(trainer => {
+        const el = trainer.element;
+        if (defeatedTrainers.includes(trainer.index)) {
+          el.style.opacity = '0.4';
+          el.style.filter = 'grayscale(100%)';
+          // Add checkmark to label
+          const label = el.querySelector('.sprite-label');
+          if (label && !label.textContent.includes('✓')) {
+            label.textContent = '✓ ' + label.textContent;
+          }
+        } else {
+          el.style.opacity = '1';
+          el.style.filter = 'none';
+        }
+      });
     }
 
     function updatePlayerPosition() {
@@ -1506,12 +1536,17 @@
       isPlayerTurn = true;
       battleActive = true;
       activeMarketCondition = null;
-      currentRound = trainerIndex;
 
-      // Initialize budgets for this round
-      const roundBudget = ROUND_BUDGETS[trainerIndex];
-      playerBudget = roundBudget;
-      trainerBudget = roundBudget;
+      // Check if trainer already defeated
+      if (defeatedTrainers.includes(trainerIndex)) {
+        addBattleLog(`You already defeated ${currentTrainer.name}!`);
+        return;
+      }
+
+      // Initialize budgets based on games won (not trainer)
+      const gameBudget = GAME_BUDGETS[gamesWon] || 1.00;
+      playerBudget = gameBudget;
+      trainerBudget = gameBudget;
 
       // Hide any previous market condition indicator
       hideMarketConditionIndicator();
@@ -1541,7 +1576,7 @@
       document.getElementById('battle-log').innerHTML = `
         <div class="log-entry">${currentTrainer.name} wants to battle!</div>
         <div class="log-entry">${currentTrainer.name}: <strong>${trainerType}</strong> | You: <strong>${playerType}</strong></div>
-        <div class="log-entry">Round ${trainerIndex + 1} Budget: <strong>${roundBudget.toFixed(2)} tokens each</strong></div>
+        <div class="log-entry">Game ${gamesWon + 1} Budget: <strong>${gameBudget.toFixed(2)} tokens each</strong></div>
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
@@ -1579,7 +1614,7 @@
     }
 
     function updateBudgetBars() {
-      const roundBudget = ROUND_BUDGETS[currentRound];
+      const roundBudget = GAME_BUDGETS[gamesWon];
 
       // Player budget bar
       const playerFill = document.getElementById('player-budget-fill');
@@ -1988,37 +2023,101 @@
       const trainerTotal = trainerTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
 
       const title = document.getElementById('result-title');
-      title.textContent = playerWon ? 'VICTORY!' : 'DEFEAT!';
-      title.className = 'result-title ' + (playerWon ? 'win' : 'lose');
+      const gameBudget = GAME_BUDGETS[gamesWon] || 1.00;
+      const gameNum = gamesWon + 1;
 
-      const roundBudget = ROUND_BUDGETS[currentRound];
-      const roundName = `Round ${currentRound + 1}`;
-
-      document.getElementById('result-stats').innerHTML = `
-        <div>${roundName} vs ${currentTrainer.name}</div>
-        <div>Round Budget: ${roundBudget.toFixed(2)} tokens each</div>
-        <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
-        <div>Total TXs: ${battleTxs.length}</div>
-        <div>You spent: ${playerTotal.toFixed(3)} USD</div>
-        <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
-        ${playerWon ? '<div style="color: #16a34a; margin-top: 10px;">Budget doesn\'t carry over. Next round has a smaller budget!</div>' : '<div style="color: #dc2626; margin-top: 10px;">Try again with budget reset to ' + roundBudget.toFixed(2) + ' tokens.</div>'}
-      `;
-
-      document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
-        <div>
-          ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
-          <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
-        </div>
-      `).join('');
-
-      // Update button text based on outcome
-      const playAgainBtn = document.getElementById('play-again-btn');
+      // Handle win
       if (playerWon) {
-        playAgainBtn.textContent = currentRound === 2 ? 'GAME COMPLETE!' : 'Continue';
-        playAgainBtn.onclick = () => showScreen('overworld-screen');
+        // Mark this trainer as defeated
+        if (!defeatedTrainers.includes(currentTrainer.index)) {
+          defeatedTrainers.push(currentTrainer.index);
+          gamesWon++;
+        }
+
+        // Check for graduation (all 3 trainers defeated)
+        if (gamesWon >= 3) {
+          title.textContent = 'CONGRATULATIONS!';
+          title.className = 'result-title win';
+
+          document.getElementById('result-stats').innerHTML = `
+            <div style="font-size: 12px; margin-bottom: 15px;">🎓 YOU DID IT! 🎓</div>
+            <div>You defeated all three trainers!</div>
+            <div style="margin-top: 15px; color: #16a34a; font-size: 10px;">You're graduating in May with a job!</div>
+            <div style="margin-top: 10px;">Final Battle vs ${currentTrainer.name}</div>
+            <div>Total TXs: ${battleTxs.length}</div>
+            <div>You spent: ${playerTotal.toFixed(3)} USD</div>
+            <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
+          `;
+
+          document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+            <div>
+              ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
+              <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
+            </div>
+          `).join('');
+
+          const playAgainBtn = document.getElementById('play-again-btn');
+          playAgainBtn.textContent = 'Play Again';
+          playAgainBtn.onclick = () => {
+            // Reset game state
+            gamesWon = 0;
+            defeatedTrainers = [];
+            showScreen('overworld-screen');
+          };
+        } else {
+          // Normal win - continue to next trainer
+          title.textContent = 'VICTORY!';
+          title.className = 'result-title win';
+
+          const nextBudget = GAME_BUDGETS[gamesWon] || 1.00;
+
+          document.getElementById('result-stats').innerHTML = `
+            <div>Game ${gameNum} vs ${currentTrainer.name}</div>
+            <div>Game Budget: ${gameBudget.toFixed(2)} tokens each</div>
+            <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
+            <div>Total TXs: ${battleTxs.length}</div>
+            <div>You spent: ${playerTotal.toFixed(3)} USD</div>
+            <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
+            <div style="color: #16a34a; margin-top: 10px;">Next game budget: ${nextBudget.toFixed(2)} tokens</div>
+            <div style="color: #f59e0b;">${3 - gamesWon} trainer(s) remaining!</div>
+          `;
+
+          document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+            <div>
+              ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
+              <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
+            </div>
+          `).join('');
+
+          const playAgainBtn = document.getElementById('play-again-btn');
+          playAgainBtn.textContent = 'Continue';
+          playAgainBtn.onclick = () => showScreen('overworld-screen');
+        }
       } else {
-        playAgainBtn.textContent = 'Retry Round';
-        playAgainBtn.onclick = () => startBattle(currentRound); // Retry same trainer
+        // Loss - retry same trainer with same game number
+        title.textContent = 'DEFEAT!';
+        title.className = 'result-title lose';
+
+        document.getElementById('result-stats').innerHTML = `
+          <div>Game ${gameNum} vs ${currentTrainer.name}</div>
+          <div>Game Budget: ${gameBudget.toFixed(2)} tokens each</div>
+          <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
+          <div>Total TXs: ${battleTxs.length}</div>
+          <div>You spent: ${playerTotal.toFixed(3)} USD</div>
+          <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
+          <div style="color: #dc2626; margin-top: 10px;">Try again with budget reset to ${gameBudget.toFixed(2)} tokens.</div>
+        `;
+
+        document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+          <div>
+            ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
+            <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
+          </div>
+        `).join('');
+
+        const playAgainBtn = document.getElementById('play-again-btn');
+        playAgainBtn.textContent = 'Retry';
+        playAgainBtn.onclick = () => startBattle(currentTrainer.index);
       }
 
       setTimeout(() => showScreen('result-screen'), 1500);
