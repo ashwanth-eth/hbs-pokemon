@@ -24,14 +24,15 @@
     }
 
     .game-container {
-      width: 640px;
-      height: 480px;
+      width: 800px;
+      height: 600px;
       background-color: #98cb98;
       border: 8px solid #2d2d2d;
       border-radius: 8px;
       box-shadow: 0 0 0 4px #6b8c42, 8px 8px 0 0 rgba(0,0,0,0.3);
       overflow: hidden;
       position: relative;
+      outline: none;
     }
 
     .screen {
@@ -150,8 +151,8 @@
     }
 
     .bookshelf-top { top: 0; left: 0; width: 100%; height: 50px; }
-    .bookshelf-left { top: 50px; left: 0; width: 40px; height: 200px; }
-    .bookshelf-right { top: 50px; right: 0; width: 40px; height: 200px; }
+    .bookshelf-left { top: 50px; left: 0; width: 40px; height: 250px; }
+    .bookshelf-right { top: 50px; right: 0; width: 40px; height: 250px; }
 
     /* Study tables */
     .table {
@@ -175,11 +176,11 @@
     /* Service desk */
     .service-desk {
       position: absolute;
-      top: 180px;
+      top: 220px;
       left: 50%;
       transform: translateX(-50%);
-      width: 100px;
-      height: 60px;
+      width: 120px;
+      height: 70px;
       background: #654321;
       border: 4px solid #3d2314;
       display: flex;
@@ -536,7 +537,7 @@
   </style>
 </head>
 <body>
-  <div class="game-container">
+  <div class="game-container" tabindex="0" id="game-container">
     <!-- Title Screen -->
     <div id="title-screen" class="screen active">
       <div class="game-title">
@@ -565,23 +566,23 @@
         <div class="bookshelf bookshelf-right"></div>
 
         <!-- Windows -->
-        <div class="window" style="left: 100px;"></div>
-        <div class="window" style="left: 200px;"></div>
-        <div class="window" style="left: 400px;"></div>
-        <div class="window" style="left: 500px;"></div>
+        <div class="window" style="left: 120px;"></div>
+        <div class="window" style="left: 260px;"></div>
+        <div class="window" style="left: 480px;"></div>
+        <div class="window" style="left: 620px;"></div>
 
         <!-- Chandeliers -->
-        <div class="chandelier" style="top: 100px; left: 150px;"></div>
-        <div class="chandelier" style="top: 100px; left: 320px;"></div>
-        <div class="chandelier" style="top: 100px; left: 490px;"></div>
+        <div class="chandelier" style="top: 100px; left: 200px;"></div>
+        <div class="chandelier" style="top: 100px; left: 400px;"></div>
+        <div class="chandelier" style="top: 100px; left: 600px;"></div>
 
         <!-- Service Desk -->
         <div class="service-desk"></div>
 
         <!-- Study Tables -->
-        <div class="table" style="top: 280px; left: 80px; width: 80px; height: 50px;"></div>
-        <div class="table" style="top: 280px; left: 480px; width: 80px; height: 50px;"></div>
-        <div class="table" style="top: 370px; left: 250px; width: 140px; height: 50px;"></div>
+        <div class="table" style="top: 320px; left: 100px; width: 100px; height: 60px;"></div>
+        <div class="table" style="top: 320px; left: 600px; width: 100px; height: 60px;"></div>
+        <div class="table" style="top: 450px; left: 320px; width: 160px; height: 60px;"></div>
 
         <!-- Player sprite (positioned by JS) -->
         <div class="sprite" id="player">
@@ -595,7 +596,7 @@
         </div>
 
         <!-- Trainer sprites -->
-        <div class="sprite trainer" id="trainer-0" data-trainer="0" style="left: 100px; top: 300px;">
+        <div class="sprite trainer" id="trainer-0" data-trainer="0" style="left: 120px; top: 350px;">
           <div class="human-sprite chad-sprite">
             <div class="sprite-hair"></div>
             <div class="sprite-head"></div>
@@ -605,7 +606,7 @@
           <div class="sprite-label">CHAD</div>
         </div>
 
-        <div class="sprite trainer" id="trainer-1" data-trainer="1" style="left: 500px; top: 300px;">
+        <div class="sprite trainer" id="trainer-1" data-trainer="1" style="left: 650px; top: 350px;">
           <div class="human-sprite priya-sprite">
             <div class="sprite-hair"></div>
             <div class="sprite-head"></div>
@@ -615,7 +616,7 @@
           <div class="sprite-label">PRIYA</div>
         </div>
 
-        <div class="sprite trainer" id="trainer-2" data-trainer="2" style="left: 300px; top: 390px;">
+        <div class="sprite trainer" id="trainer-2" data-trainer="2" style="left: 380px; top: 480px;">
           <div class="human-sprite francois-sprite">
             <div class="sprite-hair"></div>
             <div class="sprite-head"></div>
@@ -731,9 +732,9 @@
     let isPlayerTurn = true;
     let battleActive = false;
 
-    // Player position
-    let playerX = 300;
-    let playerY = 400;
+    // Player position (start near center-bottom)
+    let playerX = 380;
+    let playerY = 540;
     const MOVE_SPEED = 8;
     const SPRITE_WIDTH = 32;
     const SPRITE_HEIGHT = 48;
@@ -742,13 +743,38 @@
     let trainers = [];
     let nearbyTrainer = null;
 
-    // Move definitions
-    const MOVES = [
+    // Player move definitions
+    const PLAYER_MOVES = [
       { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0 },
       { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 0.95 },
-      { name: 'Networking Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85 },
+      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85 },
       { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70 },
     ];
+
+    // Trainer-specific moves
+    const TRAINER_MOVES = {
+      // Chad - PE Bro
+      0: [
+        { name: 'Hostile LBO', damage: 15, txAmount: '0.015', hitChance: 1.0 },
+        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 0.95 },
+        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.85 },
+        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.75 },
+      ],
+      // Priya - The Founder/VC
+      1: [
+        { name: 'Pre-empt Term Sheet', damage: 15, txAmount: '0.015', hitChance: 1.0 },
+        { name: 'LP Clawback', damage: 30, txAmount: '0.03', hitChance: 0.90 },
+        { name: 'Lead Eng Quits', damage: 45, txAmount: '0.045', hitChance: 0.80 },
+        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.70 },
+      ],
+      // François - The Consultant
+      2: [
+        { name: '2x2 Matrix', damage: 10, txAmount: '0.01', hitChance: 1.0 },
+        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 0.95 },
+        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.85 },
+        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.75 },
+      ],
+    };
 
     const TRAINER_SPRITES = ['chad-sprite', 'priya-sprite', 'francois-sprite'];
     const TRAINER_TAUNTS = [
@@ -795,8 +821,9 @@
         });
       });
 
-      // Keyboard controls
+      // Keyboard controls - listen on both document and window
       document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('keydown', handleKeyDown);
 
       // Initialize trainer positions
       initTrainers();
@@ -835,6 +862,9 @@
 
       if (screenId === 'overworld-screen') {
         updatePlayerPosition();
+        checkNearbyTrainer();
+        // Focus game container for keyboard input
+        document.getElementById('game-container').focus();
       }
     }
 
@@ -845,11 +875,16 @@
       const activeScreen = document.querySelector('.screen.active');
       if (activeScreen.id !== 'overworld-screen') return;
 
+      // Prevent default for movement keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+
       const bounds = {
         left: 50,
-        right: 640 - SPRITE_WIDTH - 10,
+        right: 800 - SPRITE_WIDTH - 10,
         top: 150,
-        bottom: 480 - SPRITE_HEIGHT - 10
+        bottom: 600 - SPRITE_HEIGHT - 10
       };
 
       let newX = playerX;
@@ -858,18 +893,22 @@
       switch(e.key) {
         case 'ArrowUp':
         case 'w':
+        case 'W':
           newY = Math.max(bounds.top, playerY - MOVE_SPEED);
           break;
         case 'ArrowDown':
         case 's':
+        case 'S':
           newY = Math.min(bounds.bottom, playerY + MOVE_SPEED);
           break;
         case 'ArrowLeft':
         case 'a':
+        case 'A':
           newX = Math.max(bounds.left, playerX - MOVE_SPEED);
           break;
         case 'ArrowRight':
         case 'd':
+        case 'D':
           newX = Math.min(bounds.right, playerX + MOVE_SPEED);
           break;
         case ' ':
@@ -968,7 +1007,7 @@
     async function playerAttack(moveIndex) {
       if (!battleActive || !isPlayerTurn) return;
 
-      const move = MOVES[moveIndex];
+      const move = PLAYER_MOVES[moveIndex];
       isPlayerTurn = false;
       setMovesEnabled(false);
 
@@ -1034,8 +1073,9 @@
     async function trainerTurn() {
       if (!battleActive) return;
 
-      const moveIndex = Math.floor(Math.random() * MOVES.length);
-      const move = MOVES[moveIndex];
+      const trainerMoves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      const moveIndex = Math.floor(Math.random() * trainerMoves.length);
+      const move = trainerMoves[moveIndex];
       const hit = Math.random() < move.hitChance;
 
       addBattleLog(`${currentTrainer.name} used ${move.name}!`);
