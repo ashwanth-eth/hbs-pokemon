@@ -488,6 +488,8 @@
     .battle-log .log-entry { margin-bottom: 5px; }
     .battle-log .tx-hash { color: #2563eb; text-decoration: underline; cursor: pointer; word-break: break-all; }
     .battle-log .damage { color: #dc2626; }
+    .battle-log .super-effective { color: #22c55e; font-weight: bold; }
+    .battle-log .not-effective { color: #9ca3af; font-style: italic; }
 
     .move-buttons {
       display: grid;
@@ -779,38 +781,76 @@
     let trainers = [];
     let nearbyTrainer = null;
 
-    // Player move definitions
+    // ========================================
+    // TYPE SYSTEM - Programmable Payment Logic
+    // ========================================
+    const TYPES = {
+      FINANCE: 'FINANCE',   // PE Bro - Chad
+      TECH: 'TECH',         // Founder - Priya
+      STRATEGY: 'STRATEGY', // Consultant - François
+    };
+
+    // Type effectiveness: attacker type → defender type → multiplier
+    // TECH beats FINANCE (disruption beats incumbents)
+    // FINANCE beats STRATEGY (money acquires frameworks)
+    // STRATEGY beats TECH (frameworks tame chaos)
+    const TYPE_CHART = {
+      [TYPES.TECH]: { [TYPES.FINANCE]: 2.0, [TYPES.STRATEGY]: 0.5, [TYPES.TECH]: 1.0 },
+      [TYPES.FINANCE]: { [TYPES.STRATEGY]: 2.0, [TYPES.TECH]: 0.5, [TYPES.FINANCE]: 1.0 },
+      [TYPES.STRATEGY]: { [TYPES.TECH]: 2.0, [TYPES.FINANCE]: 0.5, [TYPES.STRATEGY]: 1.0 },
+    };
+
+    // Trainer types
+    const TRAINER_TYPES = {
+      0: TYPES.FINANCE,   // Chad - PE Bro
+      1: TYPES.TECH,      // Priya - Founder
+      2: TYPES.STRATEGY,  // François - Consultant
+    };
+
+    // Player move definitions (with types)
     const PLAYER_MOVES = [
-      { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0 },
-      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 0.95 },
-      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85 },
-      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70 },
+      { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
+      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 0.95, type: TYPES.STRATEGY },
+      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85, type: TYPES.FINANCE },
+      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70, type: TYPES.TECH },
     ];
 
-    // Trainer-specific moves
+    // Trainer-specific moves (with types matching their archetype)
     const TRAINER_MOVES = {
-      // Chad - PE Bro
+      // Chad - PE Bro (FINANCE type moves)
       0: [
-        { name: 'Hostile LBO', damage: 15, txAmount: '0.015', hitChance: 1.0 },
-        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 0.95 },
-        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.85 },
-        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.75 },
+        { name: 'Hostile LBO', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 0.95, type: TYPES.FINANCE },
+        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.85, type: TYPES.STRATEGY },
+        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.75, type: TYPES.FINANCE },
       ],
-      // Priya - The Founder/VC
+      // Priya - The Founder/VC (TECH type moves)
       1: [
-        { name: 'Pre-empt Term Sheet', damage: 15, txAmount: '0.015', hitChance: 1.0 },
-        { name: 'LP Clawback', damage: 30, txAmount: '0.03', hitChance: 0.90 },
-        { name: 'Lead Eng Quits', damage: 45, txAmount: '0.045', hitChance: 0.80 },
-        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.70 },
+        { name: 'Pivot to AI', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.TECH },
+        { name: 'Burn Rate', damage: 30, txAmount: '0.03', hitChance: 0.90, type: TYPES.FINANCE },
+        { name: 'Ship MVP', damage: 45, txAmount: '0.045', hitChance: 0.80, type: TYPES.TECH },
+        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.70, type: TYPES.TECH },
       ],
-      // François - The Consultant
+      // François - The Consultant (STRATEGY type moves)
       2: [
-        { name: '2x2 Matrix', damage: 10, txAmount: '0.01', hitChance: 1.0 },
-        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 0.95 },
-        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.85 },
-        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.75 },
+        { name: '2x2 Matrix', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
+        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 0.95, type: TYPES.STRATEGY },
+        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.85, type: TYPES.STRATEGY },
+        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.75, type: TYPES.FINANCE },
       ],
     };
+
+    // Calculate type effectiveness
+    function getEffectiveness(moveType, defenderType) {
+      if (!moveType || !defenderType) return 1.0;
+      return TYPE_CHART[moveType]?.[defenderType] || 1.0;
+    }
+
+    function getEffectivenessText(multiplier) {
+      if (multiplier >= 2.0) return { text: "It's SUPER EFFECTIVE!", class: 'super-effective' };
+      if (multiplier <= 0.5) return { text: "Not very effective...", class: 'not-effective' };
+      return null;
+    }
 
     const TRAINER_SPRITES = ['chad-sprite', 'priya-sprite', 'francois-sprite'];
     const TRAINER_TAUNTS = [
@@ -818,6 +858,12 @@
       "My Series A closes Thursday.",
       "Let me framework that for you."
     ];
+
+    const TYPE_LABELS = {
+      [TYPES.FINANCE]: 'FINANCE',
+      [TYPES.TECH]: 'TECH',
+      [TYPES.STRATEGY]: 'STRATEGY',
+    };
 
     // ========================================
     // INITIALIZATION
@@ -1030,9 +1076,11 @@
 
       updateHPBars();
 
-      // Clear battle log
+      // Clear battle log - show trainer type
+      const trainerType = TRAINER_TYPES[trainerIndex];
       document.getElementById('battle-log').innerHTML = `
         <div class="log-entry">${currentTrainer.name} wants to battle!</div>
+        <div class="log-entry">Type: <strong>${trainerType}</strong></div>
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
@@ -1045,12 +1093,24 @@
 
     function updateMoveButtons(trainerIndex) {
       const moves = TRAINER_MOVES[trainerIndex] || PLAYER_MOVES;
+      const defenderType = TRAINER_TYPES[trainerIndex];
       const buttons = document.querySelectorAll('.move-btn');
 
       buttons.forEach((btn, i) => {
         if (moves[i]) {
-          btn.querySelector('.move-name').textContent = moves[i].name;
-          btn.querySelector('.move-damage').textContent = `${moves[i].damage} DMG / ${moves[i].txAmount} USD`;
+          const move = moves[i];
+          const effectiveness = getEffectiveness(move.type, defenderType);
+          const effectiveDamage = Math.round(move.damage * effectiveness);
+          const effectiveAmount = (parseFloat(move.txAmount) * effectiveness).toFixed(3);
+
+          // Show type and effectiveness
+          let typeLabel = move.type ? `[${move.type}]` : '';
+          let effLabel = '';
+          if (effectiveness >= 2.0) effLabel = ' (2x!)';
+          else if (effectiveness <= 0.5) effLabel = ' (0.5x)';
+
+          btn.querySelector('.move-name').textContent = `${move.name} ${typeLabel}`;
+          btn.querySelector('.move-damage').textContent = `${effectiveDamage} DMG / ${effectiveAmount} USD${effLabel}`;
         }
       });
     }
@@ -1071,17 +1131,29 @@
         return;
       }
 
+      // Calculate type effectiveness - PROGRAMMABLE PAYMENT LOGIC
+      const defenderType = TRAINER_TYPES[currentTrainer.index];
+      const effectiveness = getEffectiveness(move.type, defenderType);
+      const effectiveDamage = Math.round(move.damage * effectiveness);
+      const effectiveAmount = (parseFloat(move.txAmount) * effectiveness).toFixed(3);
+
       showLoading('Sending TX...');
 
       try {
         addBattleLog(`You used ${move.name}!`);
+
+        // Show effectiveness message
+        const effText = getEffectivenessText(effectiveness);
+        if (effText) {
+          addBattleLog(`<span class="${effText.class}">${effText.text} (${effectiveness}x payout)</span>`);
+        }
 
         const response = await fetch('/api/player-attack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trainerIndex: currentTrainer.index,
-            amount: move.txAmount
+            amount: effectiveAmount  // Adjusted amount based on type!
           })
         });
 
@@ -1095,16 +1167,17 @@
         battleTxs.push({
           from: 'player',
           hash: result.txHash,
-          amount: move.txAmount,
-          move: move.name
+          amount: effectiveAmount,
+          move: move.name,
+          effectiveness: effectiveness
         });
 
-        trainerHP = Math.max(0, trainerHP - move.damage);
+        trainerHP = Math.max(0, trainerHP - effectiveDamage);
         updateHPBars();
         animateHit('opponent');
 
-        addBattleLog(`<span class="damage">Dealt ${move.damage} damage!</span>`);
-        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...</a>`);
+        addBattleLog(`<span class="damage">Dealt ${effectiveDamage} damage!</span>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${effectiveAmount} USD)</a>`);
 
         if (trainerHP <= 0) {
           endBattle(true);
@@ -1125,7 +1198,8 @@
     async function trainerTurn() {
       if (!battleActive) return;
 
-      const trainerMoves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      // Trainer uses their own moves (with their type)
+      const trainerMoves = PLAYER_MOVES; // Trainer uses generic moves against player
       const moveIndex = Math.floor(Math.random() * trainerMoves.length);
       const move = trainerMoves[moveIndex];
       const hit = Math.random() < move.hitChance;
@@ -1141,6 +1215,10 @@
         return;
       }
 
+      // Trainer attacks are standard (player has no type weakness)
+      const damage = move.damage;
+      const amount = move.txAmount;
+
       showLoading('Trainer attacking...');
 
       try {
@@ -1149,7 +1227,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trainerIndex: currentTrainer.index,
-            amount: move.txAmount
+            amount: amount
           })
         });
 
@@ -1163,16 +1241,16 @@
         battleTxs.push({
           from: 'trainer',
           hash: result.txHash,
-          amount: move.txAmount,
+          amount: amount,
           move: move.name
         });
 
-        playerHP = Math.max(0, playerHP - move.damage);
+        playerHP = Math.max(0, playerHP - damage);
         updateHPBars();
         animateHit('player');
 
-        addBattleLog(`<span class="damage">You took ${move.damage} damage!</span>`);
-        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...</a>`);
+        addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${amount} USD)</a>`);
 
         if (playerHP <= 0) {
           endBattle(false);
