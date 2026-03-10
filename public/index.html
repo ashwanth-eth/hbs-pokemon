@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baker Library Battle Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Press Start 2P', cursive;
+      background-color: #c4cfa1;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      image-rendering: pixelated;
+    }
+
+    /* Game Container */
+    .game-container {
+      width: 480px;
+      height: 640px;
+      background-color: #98cb98;
+      border: 8px solid #2d2d2d;
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 4px #6b8c42,
+        8px 8px 0 0 rgba(0,0,0,0.3);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Screens */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Title Screen */
+    #title-screen {
+      background: linear-gradient(180deg, #2d5a27 0%, #3d7a3d 50%, #98cb98 100%);
+      justify-content: space-between;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .title-building {
+      width: 200px;
+      height: 150px;
+      position: relative;
+      margin-top: 20px;
+    }
+
+    /* Pixel art Baker Library */
+    .building-base {
+      width: 180px;
+      height: 100px;
+      background: #8b4513;
+      position: absolute;
+      bottom: 0;
+      left: 10px;
+      border: 4px solid #5d2e0c;
+    }
+
+    .building-roof {
+      width: 200px;
+      height: 40px;
+      background: #4a2810;
+      position: absolute;
+      bottom: 100px;
+      left: 0;
+      clip-path: polygon(0 100%, 50% 0, 100% 100%);
+    }
+
+    .building-door {
+      width: 30px;
+      height: 50px;
+      background: #2d1810;
+      position: absolute;
+      bottom: 0;
+      left: 75px;
+      border: 3px solid #1a0f08;
+    }
+
+    .building-window {
+      width: 25px;
+      height: 25px;
+      background: #ffffd0;
+      position: absolute;
+      border: 3px solid #5d2e0c;
+    }
+
+    .window-1 { bottom: 50px; left: 25px; }
+    .window-2 { bottom: 50px; right: 35px; }
+
+    .building-columns {
+      display: flex;
+      justify-content: space-around;
+      position: absolute;
+      bottom: 0;
+      left: 30px;
+      width: 140px;
+    }
+
+    .column {
+      width: 12px;
+      height: 80px;
+      background: #d4c4a8;
+      border: 2px solid #8b7355;
+    }
+
+    .game-title {
+      color: #ffffd0;
+      text-align: center;
+      text-shadow:
+        4px 4px 0 #2d2d2d,
+        -1px -1px 0 #2d2d2d,
+        1px -1px 0 #2d2d2d,
+        -1px 1px 0 #2d2d2d;
+      line-height: 1.8;
+    }
+
+    .game-title .main {
+      font-size: 18px;
+      display: block;
+    }
+
+    .game-title .sub {
+      font-size: 12px;
+      display: block;
+      margin-top: 10px;
+      color: #90ee90;
+    }
+
+    .connect-btn {
+      background: #3d7a3d;
+      color: #ffffd0;
+      border: 4px solid #2d5a27;
+      padding: 15px 30px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.1s;
+      text-transform: uppercase;
+    }
+
+    .connect-btn:hover {
+      background: #4d9a4d;
+      transform: scale(1.05);
+    }
+
+    .connect-btn:active {
+      transform: scale(0.95);
+    }
+
+    .connect-btn.connected {
+      background: #2d5a27;
+      border-color: #1d3a17;
+    }
+
+    .wallet-info {
+      font-size: 8px;
+      color: #ffffd0;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    /* Trainer Select Screen */
+    #trainer-select {
+      background: #98cb98;
+      padding: 20px;
+    }
+
+    .select-title {
+      font-size: 12px;
+      color: #2d2d2d;
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 4px solid #6b8c42;
+      margin-bottom: 20px;
+    }
+
+    .trainer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .trainer-card {
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .trainer-card:hover {
+      background: #ffffe0;
+      transform: translateX(5px);
+      box-shadow: 4px 4px 0 #2d2d2d;
+    }
+
+    .trainer-sprite {
+      width: 60px;
+      height: 60px;
+      background: #98cb98;
+      border: 3px solid #2d2d2d;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+    }
+
+    .trainer-info h3 {
+      font-size: 10px;
+      color: #2d2d2d;
+      margin-bottom: 8px;
+    }
+
+    .trainer-info p {
+      font-size: 7px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    /* Battle Screen */
+    #battle-screen {
+      background: #98cb98;
+    }
+
+    .battle-scene {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(180deg, #87ceeb 0%, #98cb98 60%);
+      overflow: hidden;
+    }
+
+    /* Opponent Area (top right) */
+    .opponent-area {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .opponent-sprite {
+      width: 120px;
+      height: 120px;
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 48px;
+      margin-bottom: 10px;
+      transition: all 0.1s;
+    }
+
+    .opponent-sprite.hit {
+      animation: shake 0.3s ease-in-out;
+      background: #ff6b6b;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .hp-bar-container {
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      padding: 8px;
+      width: 180px;
+    }
+
+    .hp-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      margin-bottom: 5px;
+    }
+
+    .hp-bar {
+      height: 12px;
+      background: #2d2d2d;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .hp-fill {
+      height: 100%;
+      background: linear-gradient(180deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+      transition: width 0.5s ease-out;
+    }
+
+    .hp-fill.low {
+      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    }
+
+    .hp-fill.critical {
+      background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
+    }
+
+    /* Player Area (bottom left) */
+    .player-area {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .player-sprite {
+      width: 100px;
+      height: 100px;
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 40px;
+      margin-top: 10px;
+      transition: all 0.1s;
+    }
+
+    .player-sprite.attacking {
+      animation: attack 0.3s ease-in-out;
+    }
+
+    @keyframes attack {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(30px); }
+    }
+
+    .player-sprite.hit {
+      animation: shake 0.3s ease-in-out;
+      background: #ff6b6b;
+    }
+
+    /* Battle UI */
+    .battle-ui {
+      height: 200px;
+      background: #2d2d2d;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .battle-log {
+      flex: 1;
+      background: #ffffd0;
+      margin: 8px;
+      border: 4px solid #6b8c42;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 8px;
+      line-height: 1.8;
+    }
+
+    .battle-log .log-entry {
+      margin-bottom: 5px;
+    }
+
+    .battle-log .tx-hash {
+      color: #2563eb;
+      text-decoration: underline;
+      cursor: pointer;
+      word-break: break-all;
+    }
+
+    .battle-log .damage {
+      color: #dc2626;
+    }
+
+    .battle-log .heal {
+      color: #16a34a;
+    }
+
+    .move-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 8px;
+    }
+
+    .move-btn {
+      background: #ffffd0;
+      border: 4px solid #6b8c42;
+      padding: 12px 8px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 8px;
+      cursor: pointer;
+      transition: all 0.1s;
+      text-align: left;
+    }
+
+    .move-btn:hover:not(:disabled) {
+      background: #ffffe0;
+      border-color: #4a6b2a;
+    }
+
+    .move-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .move-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .move-name {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .move-damage {
+      font-size: 6px;
+      color: #666;
+    }
+
+    /* Result Screen */
+    #result-screen {
+      background: #2d2d2d;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .result-content {
+      background: #ffffd0;
+      border: 4px solid #6b8c42;
+      padding: 30px;
+      text-align: center;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+
+    .result-title {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    .result-title.win {
+      color: #16a34a;
+    }
+
+    .result-title.lose {
+      color: #dc2626;
+    }
+
+    .result-stats {
+      font-size: 8px;
+      line-height: 2;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .tx-list {
+      font-size: 7px;
+      text-align: left;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #f0f0f0;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tx-list a {
+      color: #2563eb;
+      word-break: break-all;
+    }
+
+    .play-again-btn {
+      background: #3d7a3d;
+      color: #ffffd0;
+      border: 4px solid #2d5a27;
+      padding: 15px 30px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 8px;
+      cursor: pointer;
+    }
+
+    .play-again-btn:hover {
+      background: #4d9a4d;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loading-text {
+      color: #ffffd0;
+      font-size: 10px;
+      text-align: center;
+      line-height: 2;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 4px solid #ffffd0;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Trainer emojis/sprites */
+    .chad { background: #fef3c7; }
+    .priya { background: #dbeafe; }
+    .francois { background: #f3e8ff; }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+      <div class="title-building">
+        <div class="building-roof"></div>
+        <div class="building-base">
+          <div class="building-window window-1"></div>
+          <div class="building-window window-2"></div>
+          <div class="building-door"></div>
+          <div class="building-columns">
+            <div class="column"></div>
+            <div class="column"></div>
+            <div class="column"></div>
+            <div class="column"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-title">
+        <span class="main">BAKER LIBRARY</span>
+        <span class="main">BATTLE ARENA</span>
+        <span class="sub">Tempo Testnet Edition</span>
+      </div>
+
+      <div>
+        <button class="connect-btn" id="connect-btn">Connect Wallet</button>
+        <div class="wallet-info" id="wallet-info"></div>
+      </div>
+    </div>
+
+    <!-- Trainer Select Screen -->
+    <div id="trainer-select" class="screen">
+      <div class="select-title">CHOOSE YOUR OPPONENT</div>
+      <div class="trainer-list" id="trainer-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Battle Screen -->
+    <div id="battle-screen" class="screen">
+      <div class="battle-scene">
+        <div class="opponent-area">
+          <div class="opponent-sprite" id="opponent-sprite">👔</div>
+          <div class="hp-bar-container">
+            <div class="hp-label">
+              <span id="opponent-name">OPPONENT</span>
+              <span id="opponent-hp-text">100/100</span>
+            </div>
+            <div class="hp-bar">
+              <div class="hp-fill" id="opponent-hp-fill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="player-area">
+          <div class="hp-bar-container">
+            <div class="hp-label">
+              <span>YOU</span>
+              <span id="player-hp-text">100/100</span>
+            </div>
+            <div class="hp-bar">
+              <div class="hp-fill" id="player-hp-fill" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="player-sprite" id="player-sprite">🎓</div>
+        </div>
+
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="loading-text">
+            <div class="spinner"></div>
+            <span id="loading-message">Waiting for TX...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="battle-ui">
+        <div class="battle-log" id="battle-log">
+          <div class="log-entry">Battle started!</div>
+        </div>
+        <div class="move-buttons" id="move-buttons">
+          <button class="move-btn" data-move="0">
+            <span class="move-name">Cold Email</span>
+            <span class="move-damage">10 DMG / 0.01 USD</span>
+          </button>
+          <button class="move-btn" data-move="1">
+            <span class="move-name">Case Crack</span>
+            <span class="move-damage">25 DMG / 0.025 USD</span>
+          </button>
+          <button class="move-btn" data-move="2">
+            <span class="move-name">Network Blitz</span>
+            <span class="move-damage">40 DMG / 0.04 USD</span>
+          </button>
+          <button class="move-btn" data-move="3">
+            <span class="move-name">Disrupt</span>
+            <span class="move-damage">60 DMG / 0.06 USD</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="screen">
+      <div class="result-content">
+        <div class="result-title" id="result-title">VICTORY!</div>
+        <div class="result-stats" id="result-stats">
+          <!-- Populated by JS -->
+        </div>
+        <div class="tx-list" id="tx-list">
+          <!-- Populated by JS -->
+        </div>
+        <button class="play-again-btn" id="play-again-btn">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================
+    // GAME STATE
+    // ========================================
+    let config = null;
+    let provider = null;
+    let signer = null;
+    let playerAddress = null;
+    let currentTrainer = null;
+    let playerHP = 100;
+    let trainerHP = 100;
+    let battleTxs = [];
+    let isPlayerTurn = true;
+    let battleActive = false;
+
+    // Move definitions
+    const MOVES = [
+      { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0 },
+      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 0.95 },
+      { name: 'Networking Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85 },
+      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70 },
+    ];
+
+    // Trainer emoji mapping
+    const TRAINER_EMOJIS = ['💼', '🚀', '📊'];
+    const TRAINER_TAUNTS = [
+      "I modeled this outcome three ways.",
+      "My Series A closes Thursday.",
+      "Let me framework that for you."
+    ];
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+    async function init() {
+      // Load config from server
+      try {
+        const response = await fetch('/api/config');
+        config = await response.json();
+        console.log('Config loaded:', config);
+      } catch (error) {
+        console.error('Failed to load config:', error);
+        alert('Failed to load game config. Make sure the server is running.');
+        return;
+      }
+
+      // Set up event listeners
+      document.getElementById('connect-btn').addEventListener('click', connectWallet);
+      document.getElementById('play-again-btn').addEventListener('click', resetGame);
+
+      // Move button listeners
+      document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (battleActive && isPlayerTurn) {
+            playerAttack(parseInt(btn.dataset.move));
+          }
+        });
+      });
+    }
+
+    // ========================================
+    // WALLET CONNECTION
+    // ========================================
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert('MetaMask not found! Please install MetaMask to play.');
+        return;
+      }
+
+      try {
+        // Request accounts
+        const accounts = await window.ethereum.request({
+          method: 'eth_requestAccounts'
+        });
+        playerAddress = accounts[0];
+
+        // Check/switch network
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const targetChainId = '0x' + config.chainId.toString(16);
+
+        if (chainId !== targetChainId) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: targetChainId }],
+            });
+          } catch (switchError) {
+            // Chain not added, try to add it
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: targetChainId,
+                  chainName: 'Tempo Testnet (Moderato)',
+                  nativeCurrency: { name: 'USD', symbol: 'USD', decimals: 18 },
+                  rpcUrls: [config.rpcUrl],
+                  blockExplorerUrls: [config.explorerUrl],
+                }],
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+
+        // Set up ethers
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+
+        // Update UI
+        const btn = document.getElementById('connect-btn');
+        btn.textContent = 'Connected!';
+        btn.classList.add('connected');
+
+        const shortAddress = playerAddress.slice(0, 6) + '...' + playerAddress.slice(-4);
+        document.getElementById('wallet-info').textContent = shortAddress;
+
+        // Show trainer select after short delay
+        setTimeout(() => showScreen('trainer-select'), 500);
+        populateTrainerList();
+
+      } catch (error) {
+        console.error('Wallet connection failed:', error);
+        alert('Failed to connect wallet: ' + error.message);
+      }
+    }
+
+    // ========================================
+    // SCREEN MANAGEMENT
+    // ========================================
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function populateTrainerList() {
+      const list = document.getElementById('trainer-list');
+      list.innerHTML = '';
+
+      config.trainers.forEach((trainer, index) => {
+        if (!trainer.address) return; // Skip unconfigured trainers
+
+        const card = document.createElement('div');
+        card.className = 'trainer-card';
+        card.innerHTML = `
+          <div class="trainer-sprite">${TRAINER_EMOJIS[index] || '👤'}</div>
+          <div class="trainer-info">
+            <h3>${trainer.name}</h3>
+            <p>"${TRAINER_TAUNTS[index] || 'Ready to battle!'}"</p>
+          </div>
+        `;
+        card.addEventListener('click', () => startBattle(index));
+        list.appendChild(card);
+      });
+    }
+
+    // ========================================
+    // BATTLE LOGIC
+    // ========================================
+    function startBattle(trainerIndex) {
+      currentTrainer = {
+        index: trainerIndex,
+        ...config.trainers[trainerIndex]
+      };
+
+      // Reset battle state
+      playerHP = 100;
+      trainerHP = 100;
+      battleTxs = [];
+      isPlayerTurn = true;
+      battleActive = true;
+
+      // Update UI
+      document.getElementById('opponent-name').textContent = currentTrainer.name.toUpperCase();
+      document.getElementById('opponent-sprite').textContent = TRAINER_EMOJIS[trainerIndex] || '👤';
+      updateHPBars();
+
+      // Clear battle log
+      document.getElementById('battle-log').innerHTML = `
+        <div class="log-entry">${currentTrainer.name} wants to battle!</div>
+        <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
+      `;
+
+      // Enable move buttons
+      setMovesEnabled(true);
+
+      showScreen('battle-screen');
+    }
+
+    async function playerAttack(moveIndex) {
+      if (!battleActive || !isPlayerTurn) return;
+
+      const move = MOVES[moveIndex];
+      isPlayerTurn = false;
+      setMovesEnabled(false);
+
+      // Check hit
+      const hit = Math.random() < move.hitChance;
+
+      if (!hit) {
+        addBattleLog(`Your ${move.name} missed!`);
+        setTimeout(() => trainerTurn(), 1000);
+        return;
+      }
+
+      // Show loading
+      showLoading('Sending TX to opponent...');
+
+      try {
+        // Send TX from player to trainer
+        const tx = await signer.sendTransaction({
+          to: currentTrainer.address,
+          value: ethers.parseEther(move.txAmount),
+        });
+
+        addBattleLog(`You used ${move.name}!`);
+        showLoading('Waiting for confirmation...');
+
+        const receipt = await tx.wait();
+        hideLoading();
+
+        // Record TX
+        battleTxs.push({
+          from: 'player',
+          hash: tx.hash,
+          amount: move.txAmount,
+          move: move.name
+        });
+
+        // Apply damage
+        trainerHP = Math.max(0, trainerHP - move.damage);
+        updateHPBars();
+        animateHit('opponent');
+
+        addBattleLog(`<span class="damage">Dealt ${move.damage} damage!</span>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">TX: ${tx.hash.slice(0, 10)}...${tx.hash.slice(-8)}</a>`);
+
+        // Check win
+        if (trainerHP <= 0) {
+          endBattle(true);
+          return;
+        }
+
+        // Trainer turn
+        setTimeout(() => trainerTurn(), 1500);
+
+      } catch (error) {
+        hideLoading();
+        console.error('TX failed:', error);
+        addBattleLog(`Transaction failed! ${error.message}`);
+        isPlayerTurn = true;
+        setMovesEnabled(true);
+      }
+    }
+
+    async function trainerTurn() {
+      if (!battleActive) return;
+
+      // AI chooses a move (weighted random)
+      const moveIndex = Math.floor(Math.random() * MOVES.length);
+      const move = MOVES[moveIndex];
+
+      // Check hit
+      const hit = Math.random() < move.hitChance;
+
+      addBattleLog(`${currentTrainer.name} used ${move.name}!`);
+
+      if (!hit) {
+        addBattleLog(`${currentTrainer.name}'s attack missed!`);
+        setTimeout(() => {
+          isPlayerTurn = true;
+          setMovesEnabled(true);
+        }, 1000);
+        return;
+      }
+
+      showLoading('Trainer sending TX...');
+
+      try {
+        // Server signs and sends TX from trainer wallet
+        const response = await fetch('/api/trainer-attack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trainerIndex: currentTrainer.index,
+            playerAddress: playerAddress,
+            amount: move.txAmount
+          })
+        });
+
+        const result = await response.json();
+        hideLoading();
+
+        if (!result.success) {
+          throw new Error(result.message || 'Trainer TX failed');
+        }
+
+        // Record TX
+        battleTxs.push({
+          from: 'trainer',
+          hash: result.txHash,
+          amount: move.txAmount,
+          move: move.name
+        });
+
+        // Apply damage
+        playerHP = Math.max(0, playerHP - move.damage);
+        updateHPBars();
+        animateHit('player');
+
+        addBattleLog(`<span class="damage">You took ${move.damage} damage!</span>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}...${result.txHash.slice(-8)}</a>`);
+
+        // Check loss
+        if (playerHP <= 0) {
+          endBattle(false);
+          return;
+        }
+
+        // Player turn
+        isPlayerTurn = true;
+        setMovesEnabled(true);
+
+      } catch (error) {
+        hideLoading();
+        console.error('Trainer TX failed:', error);
+        addBattleLog(`Trainer's attack failed! Your turn.`);
+        isPlayerTurn = true;
+        setMovesEnabled(true);
+      }
+    }
+
+    function endBattle(playerWon) {
+      battleActive = false;
+      setMovesEnabled(false);
+
+      // Calculate stats
+      const playerTxs = battleTxs.filter(tx => tx.from === 'player');
+      const trainerTxs = battleTxs.filter(tx => tx.from === 'trainer');
+      const playerTotal = playerTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+      const trainerTotal = trainerTxs.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+
+      // Update result screen
+      const title = document.getElementById('result-title');
+      title.textContent = playerWon ? 'VICTORY!' : 'DEFEAT!';
+      title.className = 'result-title ' + (playerWon ? 'win' : 'lose');
+
+      document.getElementById('result-stats').innerHTML = `
+        <div>Opponent: ${currentTrainer.name}</div>
+        <div>Total TXs: ${battleTxs.length}</div>
+        <div>You sent: ${playerTotal.toFixed(3)} USD (${playerTxs.length} TXs)</div>
+        <div>You received: ${trainerTotal.toFixed(3)} USD (${trainerTxs.length} TXs)</div>
+        <div>Net: ${(trainerTotal - playerTotal).toFixed(3)} USD</div>
+      `;
+
+      document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
+        <div>
+          ${tx.from === 'player' ? '➡️' : '⬅️'} ${tx.move}:
+          <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 20)}...</a>
+        </div>
+      `).join('');
+
+      setTimeout(() => showScreen('result-screen'), 1500);
+    }
+
+    // ========================================
+    // UI HELPERS
+    // ========================================
+    function updateHPBars() {
+      // Player HP
+      const playerFill = document.getElementById('player-hp-fill');
+      const playerPercent = (playerHP / 100) * 100;
+      playerFill.style.width = playerPercent + '%';
+      playerFill.className = 'hp-fill' + (playerPercent <= 20 ? ' critical' : playerPercent <= 50 ? ' low' : '');
+      document.getElementById('player-hp-text').textContent = `${playerHP}/100`;
+
+      // Trainer HP
+      const trainerFill = document.getElementById('opponent-hp-fill');
+      const trainerPercent = (trainerHP / 100) * 100;
+      trainerFill.style.width = trainerPercent + '%';
+      trainerFill.className = 'hp-fill' + (trainerPercent <= 20 ? ' critical' : trainerPercent <= 50 ? ' low' : '');
+      document.getElementById('opponent-hp-text').textContent = `${trainerHP}/100`;
+    }
+
+    function animateHit(target) {
+      const sprite = document.getElementById(target === 'player' ? 'player-sprite' : 'opponent-sprite');
+      sprite.classList.add('hit');
+      setTimeout(() => sprite.classList.remove('hit'), 300);
+    }
+
+    function setMovesEnabled(enabled) {
+      document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.disabled = !enabled;
+      });
+    }
+
+    function addBattleLog(message) {
+      const log = document.getElementById('battle-log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = message;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showLoading(message) {
+      document.getElementById('loading-message').textContent = message;
+      document.getElementById('loading-overlay').classList.add('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.remove('active');
+    }
+
+    function resetGame() {
+      showScreen('trainer-select');
+    }
+
+    // ========================================
+    // START
+    // ========================================
+    init();
+  </script>
+</body>
+</html>
