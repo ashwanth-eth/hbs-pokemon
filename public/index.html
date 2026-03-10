@@ -1110,11 +1110,12 @@
     }
 
     // Player move definitions (with types)
+    // Hit chances kept high for demo reliability (real TXs = misses feel bad)
     const PLAYER_MOVES = [
       { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
-      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 0.95, type: TYPES.STRATEGY },
-      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.85, type: TYPES.FINANCE },
-      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.70, type: TYPES.TECH },
+      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 1.0, type: TYPES.STRATEGY },
+      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.95, type: TYPES.FINANCE },
+      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.90, type: TYPES.TECH },
     ];
 
     // Trainer-specific moves (with types matching their archetype)
@@ -1122,23 +1123,23 @@
       // Chad - PE Bro (FINANCE type moves)
       0: [
         { name: 'Hostile LBO', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.FINANCE },
-        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 0.95, type: TYPES.FINANCE },
-        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.85, type: TYPES.STRATEGY },
-        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.75, type: TYPES.FINANCE },
+        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.95, type: TYPES.STRATEGY },
+        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.90, type: TYPES.FINANCE },
       ],
       // Priya - The Founder/VC (TECH type moves)
       1: [
         { name: 'Pivot to AI', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.TECH },
-        { name: 'Burn Rate', damage: 30, txAmount: '0.03', hitChance: 0.90, type: TYPES.FINANCE },
-        { name: 'Ship MVP', damage: 45, txAmount: '0.045', hitChance: 0.80, type: TYPES.TECH },
-        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.70, type: TYPES.TECH },
+        { name: 'Burn Rate', damage: 30, txAmount: '0.03', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Ship MVP', damage: 45, txAmount: '0.045', hitChance: 0.95, type: TYPES.TECH },
+        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.90, type: TYPES.TECH },
       ],
       // François - The Consultant (STRATEGY type moves)
       2: [
         { name: '2x2 Matrix', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
-        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 0.95, type: TYPES.STRATEGY },
-        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.85, type: TYPES.STRATEGY },
-        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.75, type: TYPES.FINANCE },
+        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 1.0, type: TYPES.STRATEGY },
+        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.95, type: TYPES.STRATEGY },
+        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.90, type: TYPES.FINANCE },
       ],
     };
 
