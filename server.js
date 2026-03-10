@@ -194,8 +194,9 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
   }
 });
 
-// Null address for burning tokens (healing)
-const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
+// Dead address for burning tokens (healing)
+// Using 0xdead instead of 0x0 because most ERC-20s block transfers to zero address
+const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
 // API endpoint for player healing (burns tokens to null address)
 app.post('/api/player-heal', express.json(), async (req, res) => {
@@ -227,8 +228,8 @@ app.post('/api/player-heal', express.json(), async (req, res) => {
 
     console.log(`Player heals! Burning ${amount} pathUSD to null address`);
 
-    // Transfer tokens to null address (burn)
-    const tx = await token.transfer(NULL_ADDRESS, tokenAmount);
+    // Transfer tokens to burn address (0xdead)
+    const tx = await token.transfer(BURN_ADDRESS, tokenAmount);
 
     // Wait for confirmation
     const receipt = await tx.wait();
