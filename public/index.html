@@ -554,6 +554,48 @@
     .hp-fill.low { background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); }
     .hp-fill.critical { background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%); }
 
+    /* Budget Bar */
+    .budget-bar-container {
+      margin-top: 6px;
+    }
+
+    .budget-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 7px;
+      margin-bottom: 3px;
+      color: #666;
+    }
+
+    .budget-bar {
+      height: 8px;
+      background: #2d2d2d;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .budget-fill {
+      height: 100%;
+      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+      transition: width 0.3s ease-out;
+    }
+
+    .budget-fill.low { background: linear-gradient(180deg, #f87171 0%, #ef4444 50%, #dc2626 100%); }
+    .budget-fill.empty { background: #666; }
+
+    .out-of-budget {
+      color: #dc2626;
+      font-size: 7px;
+      text-align: center;
+      margin-top: 4px;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
     .player-area {
       position: absolute;
       bottom: 20px;
@@ -656,7 +698,7 @@
 
     .move-buttons {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 4px;
       padding: 8px;
     }
@@ -664,17 +706,26 @@
     .move-btn {
       background: #ffffd0;
       border: 4px solid #6b8c42;
-      padding: 10px 8px;
+      padding: 8px 6px;
       font-family: 'Press Start 2P', cursive;
-      font-size: 8px;
+      font-size: 7px;
       cursor: pointer;
       text-align: left;
     }
 
     .move-btn:hover:not(:disabled) { background: #ffffe0; }
     .move-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .move-btn.no-budget { opacity: 0.3; background: #ccc; }
     .move-name { display: block; margin-bottom: 4px; }
     .move-damage { font-size: 6px; color: #666; }
+
+    /* Heal buttons */
+    .move-btn.heal-btn {
+      border-color: #ec4899;
+      background: #fce7f3;
+    }
+    .move-btn.heal-btn:hover:not(:disabled) { background: #fbcfe8; }
+    .move-btn.heal-btn .move-name { color: #be185d; }
 
     /* ========== RESULT SCREEN ========== */
     #result-screen {
@@ -894,6 +945,15 @@
             <div class="hp-bar">
               <div class="hp-fill" id="opponent-hp-fill" style="width: 100%"></div>
             </div>
+            <div class="budget-bar-container">
+              <div class="budget-label">
+                <span>BUDGET</span>
+                <span id="opponent-budget-text">2.00</span>
+              </div>
+              <div class="budget-bar">
+                <div class="budget-fill" id="opponent-budget-fill" style="width: 100%"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -905,6 +965,16 @@
             </div>
             <div class="hp-bar">
               <div class="hp-fill" id="player-hp-fill" style="width: 100%"></div>
+            </div>
+            <div class="budget-bar-container">
+              <div class="budget-label">
+                <span>BUDGET</span>
+                <span id="player-budget-text">2.00</span>
+              </div>
+              <div class="budget-bar">
+                <div class="budget-fill" id="player-budget-fill" style="width: 100%"></div>
+              </div>
+              <div class="out-of-budget" id="player-out-of-budget" style="display: none;">OUT OF BUDGET!</div>
             </div>
           </div>
           <div class="battle-sprite" id="player-battle-sprite">
@@ -931,20 +1001,28 @@
         </div>
         <div class="move-buttons">
           <button class="move-btn" data-move="0">
-            <span class="move-name">Cold Email</span>
-            <span class="move-damage">10 DMG / 0.01 USD</span>
+            <span class="move-name">Attack 1</span>
+            <span class="move-damage">-- DMG / -- USD</span>
           </button>
           <button class="move-btn" data-move="1">
-            <span class="move-name">Case Crack</span>
-            <span class="move-damage">25 DMG / 0.025 USD</span>
+            <span class="move-name">Attack 2</span>
+            <span class="move-damage">-- DMG / -- USD</span>
+          </button>
+          <button class="move-btn heal-btn" data-heal="0">
+            <span class="move-name">Energy Drink</span>
+            <span class="move-damage">+20 HP / 0.02 USD</span>
           </button>
           <button class="move-btn" data-move="2">
-            <span class="move-name">Network Blitz</span>
-            <span class="move-damage">40 DMG / 0.04 USD</span>
+            <span class="move-name">Attack 3</span>
+            <span class="move-damage">-- DMG / -- USD</span>
           </button>
           <button class="move-btn" data-move="3">
-            <span class="move-name">Disrupt</span>
-            <span class="move-damage">60 DMG / 0.06 USD</span>
+            <span class="move-name">Attack 4</span>
+            <span class="move-damage">-- DMG / -- USD</span>
+          </button>
+          <button class="move-btn heal-btn" data-heal="1">
+            <span class="move-name">Adderall</span>
+            <span class="move-damage">+40 HP / 0.04 USD</span>
           </button>
         </div>
       </div>
@@ -980,6 +1058,23 @@
     // Market Conditions
     let activeMarketCondition = null;
     const MARKET_CONDITION_CHANCE = 0.25; // 25% chance each turn
+
+    // Budget System
+    let playerBudget = 0;
+    let trainerBudget = 0;
+    let currentRound = 0; // 0 = Chad, 1 = Priya, 2 = François
+
+    const ROUND_BUDGETS = {
+      0: 2.00,  // Round 1 vs Chad
+      1: 1.50,  // Round 2 vs Priya
+      2: 1.00,  // Round 3 vs François
+    };
+
+    // Heal Moves
+    const HEAL_MOVES = [
+      { name: 'Energy Drink', heal: 20, cost: 0.02 },
+      { name: 'Adderall', heal: 40, cost: 0.04 },
+    ];
 
     // Player position (start near center-bottom)
     let playerX = 380;
@@ -1200,11 +1295,20 @@
 
       document.getElementById('play-again-btn').addEventListener('click', () => showScreen('overworld-screen'));
 
-      // Move button listeners
-      document.querySelectorAll('.move-btn').forEach(btn => {
+      // Move button listeners (attacks)
+      document.querySelectorAll('.move-btn[data-move]').forEach(btn => {
         btn.addEventListener('click', () => {
-          if (battleActive && isPlayerTurn) {
+          if (battleActive && isPlayerTurn && !btn.disabled) {
             playerAttack(parseInt(btn.dataset.move));
+          }
+        });
+      });
+
+      // Heal button listeners
+      document.querySelectorAll('.move-btn[data-heal]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (battleActive && isPlayerTurn && !btn.disabled) {
+            playerHeal(parseInt(btn.dataset.heal));
           }
         });
       });
@@ -1402,6 +1506,12 @@
       isPlayerTurn = true;
       battleActive = true;
       activeMarketCondition = null;
+      currentRound = trainerIndex;
+
+      // Initialize budgets for this round
+      const roundBudget = ROUND_BUDGETS[trainerIndex];
+      playerBudget = roundBudget;
+      trainerBudget = roundBudget;
 
       // Hide any previous market condition indicator
       hideMarketConditionIndicator();
@@ -1425,11 +1535,13 @@
       `;
 
       updateHPBars();
+      updateBudgetBars();
 
-      // Clear battle log - show trainer type and player type
+      // Clear battle log - show trainer type, player type, and budget
       document.getElementById('battle-log').innerHTML = `
         <div class="log-entry">${currentTrainer.name} wants to battle!</div>
         <div class="log-entry">${currentTrainer.name}: <strong>${trainerType}</strong> | You: <strong>${playerType}</strong></div>
+        <div class="log-entry">Round ${trainerIndex + 1} Budget: <strong>${roundBudget.toFixed(2)} tokens each</strong></div>
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
@@ -1437,15 +1549,17 @@
       updateMoveButtons(trainerIndex);
 
       setMovesEnabled(true);
+      checkBudgetForMoves();
       showScreen('battle-screen');
     }
 
     function updateMoveButtons(trainerIndex) {
       const moves = TRAINER_MOVES[trainerIndex] || PLAYER_MOVES;
       const defenderType = TRAINER_TYPES[trainerIndex];
-      const buttons = document.querySelectorAll('.move-btn');
+      const attackButtons = document.querySelectorAll('.move-btn[data-move]');
 
-      buttons.forEach((btn, i) => {
+      attackButtons.forEach((btn) => {
+        const i = parseInt(btn.dataset.move);
         if (moves[i]) {
           const move = moves[i];
           const effectiveness = getEffectiveness(move.type, defenderType);
@@ -1464,11 +1578,79 @@
       });
     }
 
+    function updateBudgetBars() {
+      const roundBudget = ROUND_BUDGETS[currentRound];
+
+      // Player budget bar
+      const playerFill = document.getElementById('player-budget-fill');
+      const playerPercent = (playerBudget / roundBudget) * 100;
+      playerFill.style.width = Math.max(0, playerPercent) + '%';
+      playerFill.className = 'budget-fill' + (playerPercent <= 20 ? ' low' : '') + (playerPercent <= 0 ? ' empty' : '');
+      document.getElementById('player-budget-text').textContent = playerBudget.toFixed(2);
+
+      // Trainer budget bar
+      const trainerFill = document.getElementById('opponent-budget-fill');
+      const trainerPercent = (trainerBudget / roundBudget) * 100;
+      trainerFill.style.width = Math.max(0, trainerPercent) + '%';
+      trainerFill.className = 'budget-fill' + (trainerPercent <= 20 ? ' low' : '') + (trainerPercent <= 0 ? ' empty' : '');
+      document.getElementById('opponent-budget-text').textContent = trainerBudget.toFixed(2);
+
+      // Show/hide out of budget message
+      const outOfBudgetMsg = document.getElementById('player-out-of-budget');
+      outOfBudgetMsg.style.display = playerBudget <= 0 ? 'block' : 'none';
+    }
+
+    function checkBudgetForMoves() {
+      const moves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      const defenderType = TRAINER_TYPES[currentTrainer.index];
+
+      // Check attack buttons
+      document.querySelectorAll('.move-btn[data-move]').forEach(btn => {
+        const i = parseInt(btn.dataset.move);
+        if (moves[i]) {
+          const move = moves[i];
+          const effectiveness = getEffectiveness(move.type, defenderType);
+          const cost = parseFloat(move.txAmount) * effectiveness;
+          const canAfford = playerBudget >= cost;
+          btn.classList.toggle('no-budget', !canAfford);
+          if (!canAfford && !btn.disabled) {
+            btn.disabled = true;
+          }
+        }
+      });
+
+      // Check heal buttons
+      document.querySelectorAll('.move-btn[data-heal]').forEach(btn => {
+        const i = parseInt(btn.dataset.heal);
+        const heal = HEAL_MOVES[i];
+        const canAfford = playerBudget >= heal.cost;
+        const needsHealing = playerHP < 100;
+        btn.classList.toggle('no-budget', !canAfford);
+        if ((!canAfford || !needsHealing) && !btn.disabled) {
+          btn.disabled = true;
+        } else if (canAfford && needsHealing) {
+          btn.disabled = false;
+        }
+      });
+    }
+
     async function playerAttack(moveIndex) {
       if (!battleActive || !isPlayerTurn) return;
 
       const moves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
       const move = moves[moveIndex];
+
+      // Pre-calculate cost to check budget
+      const defenderType = TRAINER_TYPES[currentTrainer.index];
+      const preEffectiveness = getEffectiveness(move.type, defenderType);
+      const preCost = parseFloat(move.txAmount) * preEffectiveness;
+
+      // Check if player can afford this move
+      if (playerBudget < preCost) {
+        addBattleLog(`Not enough budget for ${move.name}! (Need ${preCost.toFixed(3)}, have ${playerBudget.toFixed(3)})`);
+        return;
+      }
+
       isPlayerTurn = false;
       setMovesEnabled(false);
 
@@ -1513,7 +1695,6 @@
       }
 
       // Calculate type effectiveness - PROGRAMMABLE PAYMENT LOGIC
-      const defenderType = TRAINER_TYPES[currentTrainer.index];
       let effectiveness = getEffectiveness(move.type, defenderType);
 
       // Apply market condition debuff (50% damage if player's type matches condition)
@@ -1554,6 +1735,10 @@
           throw new Error(result.message || 'TX failed');
         }
 
+        // Deduct from player's budget
+        playerBudget = Math.max(0, playerBudget - parseFloat(effectiveAmount));
+        updateBudgetBars();
+
         battleTxs.push({
           from: 'player',
           hash: result.txHash,
@@ -1569,6 +1754,7 @@
 
         addBattleLog(`<span class="damage">Dealt ${effectiveDamage} damage!</span>`);
         addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${effectiveAmount} USD)</a>`);
+        addBattleLog(`Budget remaining: ${playerBudget.toFixed(3)}`);
 
         if (trainerHP <= 0) {
           endBattle(true);
@@ -1583,6 +1769,80 @@
         addBattleLog(`TX failed: ${error.message}`);
         isPlayerTurn = true;
         setMovesEnabled(true);
+        checkBudgetForMoves();
+      }
+    }
+
+    async function playerHeal(healIndex) {
+      if (!battleActive || !isPlayerTurn) return;
+
+      const heal = HEAL_MOVES[healIndex];
+
+      // Check if player can afford this heal
+      if (playerBudget < heal.cost) {
+        addBattleLog(`Not enough budget for ${heal.name}! (Need ${heal.cost.toFixed(3)}, have ${playerBudget.toFixed(3)})`);
+        return;
+      }
+
+      // Check if healing is needed
+      if (playerHP >= 100) {
+        addBattleLog(`HP is already full!`);
+        return;
+      }
+
+      isPlayerTurn = false;
+      setMovesEnabled(false);
+
+      showLoading('Burning tokens...');
+
+      try {
+        addBattleLog(`You used ${heal.name}!`);
+
+        const response = await fetch('/api/player-heal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: heal.cost.toString()
+          })
+        });
+
+        const result = await response.json();
+        hideLoading();
+
+        if (!result.success) {
+          throw new Error(result.message || 'TX failed');
+        }
+
+        // Deduct from player's budget
+        playerBudget = Math.max(0, playerBudget - heal.cost);
+        updateBudgetBars();
+
+        // Heal the player
+        const actualHeal = Math.min(heal.heal, 100 - playerHP);
+        playerHP = Math.min(100, playerHP + heal.heal);
+        updateHPBars();
+
+        battleTxs.push({
+          from: 'player',
+          hash: result.txHash,
+          amount: heal.cost.toFixed(3),
+          move: heal.name,
+          type: 'heal'
+        });
+
+        addBattleLog(`You burned ${heal.cost.toFixed(2)} tokens. Restored ${actualHeal} HP.`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (burned)</a>`);
+        addBattleLog(`Budget remaining: ${playerBudget.toFixed(3)}`);
+
+        setTimeout(() => trainerTurn(), 1500);
+
+      } catch (error) {
+        hideLoading();
+        console.error('Heal TX failed:', error);
+        addBattleLog(`Heal TX failed: ${error.message}`);
+        isPlayerTurn = true;
+        setMovesEnabled(true);
+        checkBudgetForMoves();
       }
     }
 
@@ -1591,8 +1851,30 @@
 
       // Trainer uses their own specific moves
       const trainerMoves = TRAINER_MOVES[currentTrainer.index];
-      const moveIndex = Math.floor(Math.random() * trainerMoves.length);
-      const move = trainerMoves[moveIndex];
+      const trainerType = TRAINER_TYPES[currentTrainer.index];
+
+      // Find moves the trainer can afford
+      const affordableMoves = trainerMoves.filter(m => {
+        const eff = getEffectiveness(m.type, playerType);
+        const cost = parseFloat(m.txAmount) * eff;
+        return trainerBudget >= cost;
+      });
+
+      // If trainer can't afford any moves, they skip
+      if (affordableMoves.length === 0) {
+        addBattleLog(`${currentTrainer.name} is out of budget! Skipping turn.`);
+        activeMarketCondition = null;
+        hideMarketConditionIndicator();
+        setTimeout(() => {
+          isPlayerTurn = true;
+          setMovesEnabled(true);
+          checkBudgetForMoves();
+        }, 1000);
+        return;
+      }
+
+      // Pick a random affordable move
+      const move = affordableMoves[Math.floor(Math.random() * affordableMoves.length)];
       const hit = Math.random() < move.hitChance;
 
       addBattleLog(`${currentTrainer.name} used ${move.name}!`);
@@ -1605,12 +1887,12 @@
         setTimeout(() => {
           isPlayerTurn = true;
           setMovesEnabled(true);
+          checkBudgetForMoves();
         }, 1000);
         return;
       }
 
       // Calculate type effectiveness against player
-      const trainerType = TRAINER_TYPES[currentTrainer.index];
       let effectiveness = getEffectiveness(move.type, playerType);
 
       // Apply market condition debuff (50% damage if trainer's type matches condition)
@@ -1649,6 +1931,10 @@
           throw new Error(result.message || 'TX failed');
         }
 
+        // Deduct from trainer's budget
+        trainerBudget = Math.max(0, trainerBudget - parseFloat(amount));
+        updateBudgetBars();
+
         battleTxs.push({
           from: 'trainer',
           hash: result.txHash,
@@ -1664,6 +1950,7 @@
 
         addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
         addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${amount} USD)</a>`);
+        addBattleLog(`${currentTrainer.name}'s budget: ${trainerBudget.toFixed(3)}`);
 
         // Clear condition at end of turn
         activeMarketCondition = null;
@@ -1676,6 +1963,7 @@
 
         isPlayerTurn = true;
         setMovesEnabled(true);
+        checkBudgetForMoves();
 
       } catch (error) {
         hideLoading();
@@ -1684,6 +1972,7 @@
         hideMarketConditionIndicator();
         isPlayerTurn = true;
         setMovesEnabled(true);
+        checkBudgetForMoves();
       }
     }
 
@@ -1702,21 +1991,35 @@
       title.textContent = playerWon ? 'VICTORY!' : 'DEFEAT!';
       title.className = 'result-title ' + (playerWon ? 'win' : 'lose');
 
+      const roundBudget = ROUND_BUDGETS[currentRound];
+      const roundName = `Round ${currentRound + 1}`;
+
       document.getElementById('result-stats').innerHTML = `
-        <div>Opponent: ${currentTrainer.name}</div>
+        <div>${roundName} vs ${currentTrainer.name}</div>
+        <div>Round Budget: ${roundBudget.toFixed(2)} tokens each</div>
         <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
         <div>Total TXs: ${battleTxs.length}</div>
-        <div>You won: ${playerTotal.toFixed(3)} USD</div>
-        <div>You lost: ${trainerTotal.toFixed(3)} USD</div>
-        <div>Net: ${(playerTotal - trainerTotal).toFixed(3)} USD</div>
+        <div>You spent: ${playerTotal.toFixed(3)} USD</div>
+        <div>They spent: ${trainerTotal.toFixed(3)} USD</div>
+        ${playerWon ? '<div style="color: #16a34a; margin-top: 10px;">Budget doesn\'t carry over. Next round has a smaller budget!</div>' : '<div style="color: #dc2626; margin-top: 10px;">Try again with budget reset to ' + roundBudget.toFixed(2) + ' tokens.</div>'}
       `;
 
       document.getElementById('tx-list').innerHTML = battleTxs.map(tx => `
         <div>
-          ${tx.from === 'player' ? '+' : '-'} ${tx.move}:
+          ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
           <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
         </div>
       `).join('');
+
+      // Update button text based on outcome
+      const playAgainBtn = document.getElementById('play-again-btn');
+      if (playerWon) {
+        playAgainBtn.textContent = currentRound === 2 ? 'GAME COMPLETE!' : 'Continue';
+        playAgainBtn.onclick = () => showScreen('overworld-screen');
+      } else {
+        playAgainBtn.textContent = 'Retry Round';
+        playAgainBtn.onclick = () => startBattle(currentRound); // Retry same trainer
+      }
 
       setTimeout(() => showScreen('result-screen'), 1500);
     }
@@ -1745,7 +2048,13 @@
     }
 
     function setMovesEnabled(enabled) {
-      document.querySelectorAll('.move-btn').forEach(btn => btn.disabled = !enabled);
+      document.querySelectorAll('.move-btn').forEach(btn => {
+        btn.disabled = !enabled;
+        btn.classList.remove('no-budget');
+      });
+      if (enabled) {
+        checkBudgetForMoves();
+      }
     }
 
     function addBattleLog(message) {

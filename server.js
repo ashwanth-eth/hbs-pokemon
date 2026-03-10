@@ -194,6 +194,61 @@ app.post('/api/trainer-attack', express.json(), async (req, res) => {
   }
 });
 
+// Null address for burning tokens (healing)
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+// API endpoint for player healing (burns tokens to null address)
+app.post('/api/player-heal', express.json(), async (req, res) => {
+  const { amount } = req.body;
+
+  const playerPrivateKey = process.env.PLAYER_WALLET;
+
+  if (!playerPrivateKey) {
+    return res.status(400).json({ error: 'Player wallet not configured' });
+  }
+
+  try {
+    const provider = getProvider();
+    const wallet = new ethers.Wallet(playerPrivateKey, provider);
+
+    // Create token contract instance
+    const token = new ethers.Contract(BATTLE_TOKEN, ERC20_ABI, wallet);
+
+    // Get decimals
+    let decimals;
+    try {
+      decimals = await token.decimals();
+    } catch {
+      decimals = 18;
+    }
+
+    // Parse amount with correct decimals
+    const tokenAmount = ethers.parseUnits(amount.toString(), decimals);
+
+    console.log(`Player heals! Burning ${amount} pathUSD to null address`);
+
+    // Transfer tokens to null address (burn)
+    const tx = await token.transfer(NULL_ADDRESS, tokenAmount);
+
+    // Wait for confirmation
+    const receipt = await tx.wait();
+
+    console.log(`Heal TX confirmed: ${tx.hash}`);
+
+    res.json({
+      success: true,
+      txHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+    });
+  } catch (error) {
+    console.error('Heal TX failed:', error);
+    res.status(500).json({
+      error: 'Transaction failed',
+      message: error.message,
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`
   ╔════════════════════════════════════════════════════════╗
