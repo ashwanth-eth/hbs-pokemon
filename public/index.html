@@ -132,6 +132,102 @@
 
     .name-input:focus { outline: none; border-color: #4d9a4d; }
 
+    /* ========== PERSONA SELECT SCREEN ========== */
+    #persona-screen {
+      background: linear-gradient(180deg, #1a1a2e 0%, #2d2d4a 100%);
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      padding: 30px;
+    }
+
+    .persona-title {
+      color: #ffffd0;
+      font-size: 14px;
+      text-shadow: 2px 2px 0 #000;
+      text-align: center;
+    }
+
+    .persona-subtitle {
+      color: #90ee90;
+      font-size: 8px;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .persona-options {
+      display: flex;
+      gap: 20px;
+    }
+
+    .persona-card {
+      width: 200px;
+      background: #ffffd0;
+      border: 4px solid #2d2d2d;
+      padding: 20px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .persona-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 0 rgba(0,0,0,0.3);
+    }
+
+    .persona-card.selected {
+      border-color: #ffd700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+
+    .persona-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .persona-name {
+      font-size: 10px;
+      color: #2d2d2d;
+      margin-bottom: 8px;
+    }
+
+    .persona-type {
+      font-size: 8px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .persona-type.finance { background: #22c55e; color: white; }
+    .persona-type.tech { background: #3b82f6; color: white; }
+    .persona-type.strategy { background: #a855f7; color: white; }
+
+    .persona-desc {
+      font-size: 7px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .persona-confirm-btn {
+      background: #3d7a3d;
+      color: #ffffd0;
+      border: 4px solid #2d5a27;
+      padding: 15px 40px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+      cursor: pointer;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .persona-confirm-btn.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .persona-confirm-btn.enabled:hover { background: #4d9a4d; }
+
     /* ========== OVERWORLD SCREEN ========== */
     #overworld-screen {
       background: #d4b896;
@@ -490,6 +586,73 @@
     .battle-log .damage { color: #dc2626; }
     .battle-log .super-effective { color: #22c55e; font-weight: bold; }
     .battle-log .not-effective { color: #9ca3af; font-style: italic; }
+    .battle-log .market-condition { color: #f59e0b; font-weight: bold; }
+    .battle-log .debuffed { color: #dc2626; font-style: italic; }
+
+    /* Market Condition Banner */
+    .market-condition-banner {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      border: 4px solid #ffd700;
+      padding: 15px 25px;
+      text-align: center;
+      z-index: 50;
+      animation: conditionFlash 0.5s ease-out;
+    }
+
+    .market-condition-banner.active { display: block; }
+
+    @keyframes conditionFlash {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .condition-title {
+      color: #ffd700;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .condition-effect {
+      color: #ffffd0;
+      font-size: 8px;
+      line-height: 1.6;
+    }
+
+    /* Active Condition Indicator */
+    .active-condition-indicator {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      border: 3px solid #f59e0b;
+      padding: 8px 15px;
+      font-size: 8px;
+      color: #ffd700;
+      z-index: 40;
+      border-radius: 4px;
+    }
+
+    .active-condition-indicator.active { display: block; }
+
+    /* Player Persona Display */
+    .player-persona-badge {
+      font-size: 7px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      margin-left: 8px;
+    }
+
+    .player-persona-badge.finance { background: #22c55e; color: white; }
+    .player-persona-badge.tech { background: #3b82f6; color: white; }
+    .player-persona-badge.strategy { background: #a855f7; color: white; }
 
     .move-buttons {
       display: grid;
@@ -590,7 +753,40 @@
     <div id="name-screen" class="screen">
       <div class="name-prompt">ENTER YOUR NAME</div>
       <input type="text" class="name-input" id="name-input" maxlength="12" placeholder="YOUR NAME">
-      <button class="start-btn" id="name-submit">BEGIN</button>
+      <button class="start-btn" id="name-submit">NEXT</button>
+    </div>
+
+    <!-- Persona Select Screen -->
+    <div id="persona-screen" class="screen">
+      <div>
+        <div class="persona-title">CHOOSE YOUR PATH</div>
+        <div class="persona-subtitle">Your archetype determines how Market Conditions affect you</div>
+      </div>
+
+      <div class="persona-options">
+        <div class="persona-card" data-persona="0">
+          <div class="persona-icon">💼</div>
+          <div class="persona-name">PE BRO</div>
+          <div class="persona-type finance">FINANCE</div>
+          <div class="persona-desc">You live for the deal. LBOs are your love language. Weak to SUPERDAY events.</div>
+        </div>
+
+        <div class="persona-card" data-persona="1">
+          <div class="persona-icon">🚀</div>
+          <div class="persona-name">TECH FOUNDER</div>
+          <div class="persona-type tech">TECH</div>
+          <div class="persona-desc">Move fast, break things. Ship or die. Weak to MARKETS KILL SAAS events.</div>
+        </div>
+
+        <div class="persona-card" data-persona="2">
+          <div class="persona-icon">📊</div>
+          <div class="persona-name">CONSULTANT</div>
+          <div class="persona-type strategy">STRATEGY</div>
+          <div class="persona-desc">Framework everything. Deck by Friday. Weak to PLS FIX events.</div>
+        </div>
+      </div>
+
+      <button class="persona-confirm-btn" id="persona-confirm">CONFIRM</button>
     </div>
 
     <!-- Overworld Screen -->
@@ -672,6 +868,15 @@
     <!-- Battle Screen -->
     <div id="battle-screen" class="screen">
       <div class="battle-scene">
+        <!-- Active Condition Indicator -->
+        <div class="active-condition-indicator" id="active-condition-indicator"></div>
+
+        <!-- Market Condition Banner (flashes when condition triggers) -->
+        <div class="market-condition-banner" id="market-condition-banner">
+          <div class="condition-title" id="condition-title">SUPERDAY</div>
+          <div class="condition-effect" id="condition-effect">Goldman called back-to-back.</div>
+        </div>
+
         <div class="opponent-area">
           <div class="battle-sprite" id="opponent-sprite">
             <div class="human-sprite chad-sprite">
@@ -763,12 +968,18 @@
     let config = null;
     let playerName = 'PLAYER';
     let playerAddress = null;
+    let playerPersona = null; // 0 = PE Bro (FINANCE), 1 = Tech Founder (TECH), 2 = Consultant (STRATEGY)
+    let playerType = null;
     let currentTrainer = null;
     let playerHP = 100;
     let trainerHP = 100;
     let battleTxs = [];
     let isPlayerTurn = true;
     let battleActive = false;
+
+    // Market Conditions
+    let activeMarketCondition = null;
+    const MARKET_CONDITION_CHANCE = 0.25; // 25% chance each turn
 
     // Player position (start near center-bottom)
     let playerX = 380;
@@ -806,6 +1017,97 @@
       1: TYPES.TECH,      // Priya - Founder
       2: TYPES.STRATEGY,  // François - Consultant
     };
+
+    // Player persona types
+    const PERSONA_TYPES = {
+      0: TYPES.FINANCE,   // PE Bro
+      1: TYPES.TECH,      // Tech Founder
+      2: TYPES.STRATEGY,  // Consultant
+    };
+
+    const PERSONA_NAMES = {
+      0: 'PE Bro',
+      1: 'Tech Founder',
+      2: 'Consultant',
+    };
+
+    // ========================================
+    // MARKET CONDITIONS SYSTEM
+    // ========================================
+    const MARKET_CONDITIONS = {
+      SUPERDAY: {
+        name: 'SUPERDAY',
+        affectsType: TYPES.FINANCE,
+        title: '📞 SUPERDAY',
+        flavorText: (name) => `Goldman called back-to-back. ${name} is distracted.`,
+        effectText: 'Finance moves deal 50% damage this turn.'
+      },
+      MARKETS_KILL_SAAS: {
+        name: 'MARKETS_KILL_SAAS',
+        affectsType: TYPES.TECH,
+        title: '📉 MARKETS KILL SAAS',
+        flavorText: (name) => `VCs are pivoting to defense. ${name}'s runway just got shorter.`,
+        effectText: 'Tech moves deal 50% damage this turn.'
+      },
+      PLS_FIX: {
+        name: 'PLS_FIX',
+        affectsType: TYPES.STRATEGY,
+        title: '✈️ PLS FIX',
+        flavorText: (name) => `Partner just Slacked. ${name} is on a red-eye deck.`,
+        effectText: 'Consulting moves deal 50% damage this turn.'
+      }
+    };
+
+    const MARKET_CONDITION_LIST = [
+      MARKET_CONDITIONS.SUPERDAY,
+      MARKET_CONDITIONS.MARKETS_KILL_SAAS,
+      MARKET_CONDITIONS.PLS_FIX
+    ];
+
+    function rollMarketCondition() {
+      if (Math.random() < MARKET_CONDITION_CHANCE) {
+        const condition = MARKET_CONDITION_LIST[Math.floor(Math.random() * MARKET_CONDITION_LIST.length)];
+        return condition;
+      }
+      return null;
+    }
+
+    function isDebuffedByCondition(type, condition) {
+      if (!condition) return false;
+      return condition.affectsType === type;
+    }
+
+    function showMarketConditionBanner(condition, affectedNames) {
+      const banner = document.getElementById('market-condition-banner');
+      const titleEl = document.getElementById('condition-title');
+      const effectEl = document.getElementById('condition-effect');
+
+      titleEl.textContent = condition.title;
+
+      // Build effect text showing who's affected
+      let effectHtml = '';
+      affectedNames.forEach(name => {
+        effectHtml += `<div>${condition.flavorText(name)}</div>`;
+      });
+      effectHtml += `<div style="margin-top: 8px; color: #f87171;">${condition.effectText}</div>`;
+      effectEl.innerHTML = effectHtml;
+
+      banner.classList.add('active');
+
+      // Show indicator
+      const indicator = document.getElementById('active-condition-indicator');
+      indicator.textContent = `${condition.title} - ${condition.effectText}`;
+      indicator.classList.add('active');
+
+      // Hide banner after 2.5 seconds (indicator stays)
+      setTimeout(() => {
+        banner.classList.remove('active');
+      }, 2500);
+    }
+
+    function hideMarketConditionIndicator() {
+      document.getElementById('active-condition-indicator').classList.remove('active');
+    }
 
     // Player move definitions (with types)
     const PLAYER_MOVES = [
@@ -892,6 +1194,9 @@
         if (e.key === 'Enter') submitName();
       });
 
+      // Initialize persona selection
+      initPersonaSelect();
+
       document.getElementById('play-again-btn').addEventListener('click', () => showScreen('overworld-screen'));
 
       // Move button listeners
@@ -917,7 +1222,43 @@
       const input = document.getElementById('name-input');
       playerName = input.value.trim().toUpperCase() || 'PLAYER';
       document.getElementById('player-label').textContent = playerName;
-      document.getElementById('player-battle-name').textContent = playerName;
+      showScreen('persona-screen');
+    }
+
+    function initPersonaSelect() {
+      const cards = document.querySelectorAll('.persona-card');
+      const confirmBtn = document.getElementById('persona-confirm');
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          // Deselect all
+          cards.forEach(c => c.classList.remove('selected'));
+          // Select this one
+          card.classList.add('selected');
+          playerPersona = parseInt(card.dataset.persona);
+          playerType = PERSONA_TYPES[playerPersona];
+          // Enable confirm button
+          confirmBtn.classList.add('enabled');
+        });
+      });
+
+      confirmBtn.addEventListener('click', () => {
+        if (playerPersona !== null) {
+          confirmPersona();
+        }
+      });
+    }
+
+    function confirmPersona() {
+      // Update player battle name to include persona
+      const personaName = PERSONA_NAMES[playerPersona];
+      const typeClass = playerType.toLowerCase();
+
+      document.getElementById('player-battle-name').innerHTML = `
+        ${playerName}
+        <span class="player-persona-badge ${typeClass}">${playerType}</span>
+      `;
+
       showScreen('overworld-screen');
     }
 
@@ -1059,9 +1400,17 @@
       battleTxs = [];
       isPlayerTurn = true;
       battleActive = true;
+      activeMarketCondition = null;
+
+      // Hide any previous market condition indicator
+      hideMarketConditionIndicator();
 
       // Update UI
-      document.getElementById('opponent-name').textContent = currentTrainer.name.toUpperCase();
+      const trainerType = TRAINER_TYPES[trainerIndex];
+      document.getElementById('opponent-name').innerHTML = `
+        ${currentTrainer.name.toUpperCase()}
+        <span class="player-persona-badge ${trainerType.toLowerCase()}">${trainerType}</span>
+      `;
 
       // Update opponent sprite
       const opponentSprite = document.getElementById('opponent-sprite');
@@ -1076,11 +1425,10 @@
 
       updateHPBars();
 
-      // Clear battle log - show trainer type
-      const trainerType = TRAINER_TYPES[trainerIndex];
+      // Clear battle log - show trainer type and player type
       document.getElementById('battle-log').innerHTML = `
         <div class="log-entry">${currentTrainer.name} wants to battle!</div>
-        <div class="log-entry">Type: <strong>${trainerType}</strong></div>
+        <div class="log-entry">${currentTrainer.name}: <strong>${trainerType}</strong> | You: <strong>${playerType}</strong></div>
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
@@ -1123,6 +1471,38 @@
       isPlayerTurn = false;
       setMovesEnabled(false);
 
+      // Clear previous condition
+      activeMarketCondition = null;
+      hideMarketConditionIndicator();
+
+      // Roll for market condition at start of turn (25% chance)
+      const newCondition = rollMarketCondition();
+      if (newCondition) {
+        activeMarketCondition = newCondition;
+
+        // Check who is affected
+        const affectedNames = [];
+        const trainerType = TRAINER_TYPES[currentTrainer.index];
+
+        if (isDebuffedByCondition(playerType, newCondition)) {
+          affectedNames.push(playerName);
+        }
+        if (isDebuffedByCondition(trainerType, newCondition)) {
+          affectedNames.push(currentTrainer.name);
+        }
+
+        if (affectedNames.length > 0) {
+          showMarketConditionBanner(newCondition, affectedNames);
+          addBattleLog(`<span class="market-condition">${newCondition.title} triggered!</span>`);
+          affectedNames.forEach(name => {
+            addBattleLog(`<span class="debuffed">${newCondition.flavorText(name)}</span>`);
+          });
+
+          // Wait for banner to show
+          await new Promise(resolve => setTimeout(resolve, 2800));
+        }
+      }
+
       const hit = Math.random() < move.hitChance;
 
       if (!hit) {
@@ -1133,16 +1513,25 @@
 
       // Calculate type effectiveness - PROGRAMMABLE PAYMENT LOGIC
       const defenderType = TRAINER_TYPES[currentTrainer.index];
-      const effectiveness = getEffectiveness(move.type, defenderType);
-      const effectiveDamage = Math.round(move.damage * effectiveness);
-      const effectiveAmount = (parseFloat(move.txAmount) * effectiveness).toFixed(3);
+      let effectiveness = getEffectiveness(move.type, defenderType);
+
+      // Apply market condition debuff (50% damage if player's type matches condition)
+      let marketDebuff = 1.0;
+      if (isDebuffedByCondition(playerType, activeMarketCondition)) {
+        marketDebuff = 0.5;
+        addBattleLog(`<span class="debuffed">${playerName} is distracted! 50% damage this turn.</span>`);
+      }
+
+      const totalMultiplier = effectiveness * marketDebuff;
+      const effectiveDamage = Math.round(move.damage * totalMultiplier);
+      const effectiveAmount = (parseFloat(move.txAmount) * totalMultiplier).toFixed(3);
 
       showLoading('Sending TX...');
 
       try {
         addBattleLog(`You used ${move.name}!`);
 
-        // Show effectiveness message
+        // Show effectiveness message (only for type, not market)
         const effText = getEffectivenessText(effectiveness);
         if (effText) {
           addBattleLog(`<span class="${effText.class}">${effText.text} (${effectiveness}x payout)</span>`);
@@ -1153,7 +1542,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             trainerIndex: currentTrainer.index,
-            amount: effectiveAmount  // Adjusted amount based on type!
+            amount: effectiveAmount  // Adjusted amount based on type AND market!
           })
         });
 
@@ -1169,7 +1558,8 @@
           hash: result.txHash,
           amount: effectiveAmount,
           move: move.name,
-          effectiveness: effectiveness
+          effectiveness: effectiveness,
+          marketDebuff: marketDebuff
         });
 
         trainerHP = Math.max(0, trainerHP - effectiveDamage);
@@ -1198,8 +1588,8 @@
     async function trainerTurn() {
       if (!battleActive) return;
 
-      // Trainer uses their own moves (with their type)
-      const trainerMoves = PLAYER_MOVES; // Trainer uses generic moves against player
+      // Trainer uses their own specific moves
+      const trainerMoves = TRAINER_MOVES[currentTrainer.index];
       const moveIndex = Math.floor(Math.random() * trainerMoves.length);
       const move = trainerMoves[moveIndex];
       const hit = Math.random() < move.hitChance;
@@ -1208,6 +1598,9 @@
 
       if (!hit) {
         addBattleLog(`${currentTrainer.name}'s attack missed!`);
+        // Clear condition at end of turn
+        activeMarketCondition = null;
+        hideMarketConditionIndicator();
         setTimeout(() => {
           isPlayerTurn = true;
           setMovesEnabled(true);
@@ -1215,9 +1608,26 @@
         return;
       }
 
-      // Trainer attacks are standard (player has no type weakness)
-      const damage = move.damage;
-      const amount = move.txAmount;
+      // Calculate type effectiveness against player
+      const trainerType = TRAINER_TYPES[currentTrainer.index];
+      let effectiveness = getEffectiveness(move.type, playerType);
+
+      // Apply market condition debuff (50% damage if trainer's type matches condition)
+      let marketDebuff = 1.0;
+      if (isDebuffedByCondition(trainerType, activeMarketCondition)) {
+        marketDebuff = 0.5;
+        addBattleLog(`<span class="debuffed">${currentTrainer.name} is distracted! 50% damage this turn.</span>`);
+      }
+
+      const totalMultiplier = effectiveness * marketDebuff;
+      const damage = Math.round(move.damage * totalMultiplier);
+      const amount = (parseFloat(move.txAmount) * totalMultiplier).toFixed(3);
+
+      // Show effectiveness message for trainer's attack
+      const effText = getEffectivenessText(effectiveness);
+      if (effText) {
+        addBattleLog(`<span class="${effText.class}">${effText.text}</span>`);
+      }
 
       showLoading('Trainer attacking...');
 
@@ -1242,7 +1652,9 @@
           from: 'trainer',
           hash: result.txHash,
           amount: amount,
-          move: move.name
+          move: move.name,
+          effectiveness: effectiveness,
+          marketDebuff: marketDebuff
         });
 
         playerHP = Math.max(0, playerHP - damage);
@@ -1251,6 +1663,10 @@
 
         addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
         addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${amount} USD)</a>`);
+
+        // Clear condition at end of turn
+        activeMarketCondition = null;
+        hideMarketConditionIndicator();
 
         if (playerHP <= 0) {
           endBattle(false);
@@ -1263,6 +1679,8 @@
       } catch (error) {
         hideLoading();
         addBattleLog(`Trainer TX failed. Your turn.`);
+        activeMarketCondition = null;
+        hideMarketConditionIndicator();
         isPlayerTurn = true;
         setMovesEnabled(true);
       }
@@ -1271,6 +1689,8 @@
     function endBattle(playerWon) {
       battleActive = false;
       setMovesEnabled(false);
+      activeMarketCondition = null;
+      hideMarketConditionIndicator();
 
       const playerTxs = battleTxs.filter(tx => tx.from === 'player');
       const trainerTxs = battleTxs.filter(tx => tx.from === 'trainer');
@@ -1283,6 +1703,7 @@
 
       document.getElementById('result-stats').innerHTML = `
         <div>Opponent: ${currentTrainer.name}</div>
+        <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
         <div>Total TXs: ${battleTxs.length}</div>
         <div>You won: ${playerTotal.toFixed(3)} USD</div>
         <div>You lost: ${trainerTotal.toFixed(3)} USD</div>
