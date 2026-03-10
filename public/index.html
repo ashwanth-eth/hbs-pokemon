@@ -1000,14 +1000,30 @@
         <div class="log-entry">"${TRAINER_TAUNTS[trainerIndex]}"</div>
       `;
 
+      // Update move buttons with trainer-specific attacks
+      updateMoveButtons(trainerIndex);
+
       setMovesEnabled(true);
       showScreen('battle-screen');
+    }
+
+    function updateMoveButtons(trainerIndex) {
+      const moves = TRAINER_MOVES[trainerIndex] || PLAYER_MOVES;
+      const buttons = document.querySelectorAll('.move-btn');
+
+      buttons.forEach((btn, i) => {
+        if (moves[i]) {
+          btn.querySelector('.move-name').textContent = moves[i].name;
+          btn.querySelector('.move-damage').textContent = `${moves[i].damage} DMG / ${moves[i].txAmount} USD`;
+        }
+      });
     }
 
     async function playerAttack(moveIndex) {
       if (!battleActive || !isPlayerTurn) return;
 
-      const move = PLAYER_MOVES[moveIndex];
+      const moves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      const move = moves[moveIndex];
       isPlayerTurn = false;
       setMovesEnabled(false);
 
