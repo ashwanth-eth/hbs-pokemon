@@ -1010,7 +1010,7 @@
           </button>
           <button class="move-btn heal-btn" data-heal="0">
             <span class="move-name">Energy Drink</span>
-            <span class="move-damage">+20 HP / 0.02 USD</span>
+            <span class="move-damage">+20 HP / 0.20 USD</span>
           </button>
           <button class="move-btn" data-move="2">
             <span class="move-name">Attack 3</span>
@@ -1022,7 +1022,7 @@
           </button>
           <button class="move-btn heal-btn" data-heal="1">
             <span class="move-name">Adderall</span>
-            <span class="move-damage">+40 HP / 0.04 USD</span>
+            <span class="move-damage">+40 HP / 0.40 USD</span>
           </button>
         </div>
       </div>
@@ -1074,8 +1074,8 @@
 
     // Heal Moves
     const HEAL_MOVES = [
-      { name: 'Energy Drink', heal: 20, cost: 0.02 },
-      { name: 'Adderall', heal: 40, cost: 0.04 },
+      { name: 'Energy Drink', heal: 20, cost: 0.20 },
+      { name: 'Adderall', heal: 40, cost: 0.40 },
     ];
 
     // Player position (start near center-bottom)
@@ -1208,35 +1208,36 @@
 
     // Player move definitions (with types)
     // Hit chances kept high for demo reliability (real TXs = misses feel bad)
+    // Costs 10x higher to make budget management critical
     const PLAYER_MOVES = [
-      { name: 'Cold Email', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
-      { name: 'Case Crack', damage: 25, txAmount: '0.025', hitChance: 1.0, type: TYPES.STRATEGY },
-      { name: 'Network Blitz', damage: 40, txAmount: '0.04', hitChance: 0.95, type: TYPES.FINANCE },
-      { name: 'Disrupt', damage: 60, txAmount: '0.06', hitChance: 0.90, type: TYPES.TECH },
+      { name: 'Cold Email', damage: 10, txAmount: '0.10', hitChance: 1.0, type: TYPES.STRATEGY },
+      { name: 'Case Crack', damage: 25, txAmount: '0.25', hitChance: 1.0, type: TYPES.STRATEGY },
+      { name: 'Network Blitz', damage: 40, txAmount: '0.40', hitChance: 0.95, type: TYPES.FINANCE },
+      { name: 'Disrupt', damage: 60, txAmount: '0.60', hitChance: 0.90, type: TYPES.TECH },
     ];
 
     // Trainer-specific moves (with types matching their archetype)
     const TRAINER_MOVES = {
       // Chad - PE Bro (FINANCE type moves)
       0: [
-        { name: 'Hostile LBO', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.FINANCE },
-        { name: 'Management Fee', damage: 25, txAmount: '0.025', hitChance: 1.0, type: TYPES.FINANCE },
-        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.04', hitChance: 0.95, type: TYPES.STRATEGY },
-        { name: 'Dividend Recap', damage: 55, txAmount: '0.055', hitChance: 0.90, type: TYPES.FINANCE },
+        { name: 'Hostile LBO', damage: 15, txAmount: '0.15', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Management Fee', damage: 25, txAmount: '0.25', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Roll-Up Strategy', damage: 40, txAmount: '0.40', hitChance: 0.95, type: TYPES.STRATEGY },
+        { name: 'Dividend Recap', damage: 55, txAmount: '0.55', hitChance: 0.90, type: TYPES.FINANCE },
       ],
       // Priya - The Founder/VC (TECH type moves)
       1: [
-        { name: 'Pivot to AI', damage: 15, txAmount: '0.015', hitChance: 1.0, type: TYPES.TECH },
-        { name: 'Burn Rate', damage: 30, txAmount: '0.03', hitChance: 1.0, type: TYPES.FINANCE },
-        { name: 'Ship MVP', damage: 45, txAmount: '0.045', hitChance: 0.95, type: TYPES.TECH },
-        { name: 'Down Round', damage: 60, txAmount: '0.06', hitChance: 0.90, type: TYPES.TECH },
+        { name: 'Pivot to AI', damage: 15, txAmount: '0.15', hitChance: 1.0, type: TYPES.TECH },
+        { name: 'Burn Rate', damage: 30, txAmount: '0.30', hitChance: 1.0, type: TYPES.FINANCE },
+        { name: 'Ship MVP', damage: 45, txAmount: '0.45', hitChance: 0.95, type: TYPES.TECH },
+        { name: 'Down Round', damage: 60, txAmount: '0.60', hitChance: 0.90, type: TYPES.TECH },
       ],
       // François - The Consultant (STRATEGY type moves)
       2: [
-        { name: '2x2 Matrix', damage: 10, txAmount: '0.01', hitChance: 1.0, type: TYPES.STRATEGY },
-        { name: 'Boil The Ocean', damage: 20, txAmount: '0.02', hitChance: 1.0, type: TYPES.STRATEGY },
-        { name: 'Synergy Attack', damage: 35, txAmount: '0.035', hitChance: 0.95, type: TYPES.STRATEGY },
-        { name: 'Scope Creep', damage: 50, txAmount: '0.05', hitChance: 0.90, type: TYPES.FINANCE },
+        { name: '2x2 Matrix', damage: 10, txAmount: '0.10', hitChance: 1.0, type: TYPES.STRATEGY },
+        { name: 'Boil The Ocean', damage: 20, txAmount: '0.20', hitChance: 1.0, type: TYPES.STRATEGY },
+        { name: 'Synergy Attack', damage: 35, txAmount: '0.35', hitChance: 0.95, type: TYPES.STRATEGY },
+        { name: 'Scope Creep', damage: 50, txAmount: '0.50', hitChance: 0.90, type: TYPES.FINANCE },
       ],
     };
 
