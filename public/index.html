@@ -510,7 +510,7 @@
       font-size: 6px;
       color: #ffffd0;
       line-height: 1.8;
-      max-width: 180px;
+      max-width: 210px;
       z-index: 30;
     }
 
@@ -720,6 +720,31 @@
       line-height: 1.6;
     }
 
+    .condition-penalty {
+      color: #f87171;
+      font-size: 10px;
+      font-weight: bold;
+      margin-top: 10px;
+      padding: 8px;
+      background: rgba(220, 38, 38, 0.3);
+      border-radius: 4px;
+    }
+
+    .condition-acknowledge-btn {
+      margin-top: 15px;
+      background: #ffd700;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 8px;
+      cursor: pointer;
+    }
+
+    .condition-acknowledge-btn:hover {
+      background: #ffed4a;
+    }
+
     /* Active Condition Indicator */
     .active-condition-indicator {
       display: none;
@@ -780,6 +805,36 @@
     }
     .move-btn.heal-btn:hover:not(:disabled) { background: #fbcfe8; }
     .move-btn.heal-btn .move-name { color: #be185d; }
+
+    /* Forfeit Button */
+    .forfeit-container {
+      background: rgba(220, 38, 38, 0.15);
+      border: 3px solid #dc2626;
+      padding: 15px;
+      margin: 8px;
+      text-align: center;
+      animation: pulse 1.5s infinite;
+    }
+
+    .forfeit-message {
+      color: #dc2626;
+      font-size: 9px;
+      margin-bottom: 10px;
+    }
+
+    .forfeit-btn {
+      background: #dc2626;
+      color: white;
+      border: 4px solid #991b1b;
+      padding: 10px 25px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .forfeit-btn:hover {
+      background: #ef4444;
+    }
 
     /* ========== RESULT SCREEN ========== */
     #result-screen {
@@ -979,13 +1034,13 @@
 
         <!-- Battle Instructions -->
         <div class="battle-instructions">
-          <div class="battle-instructions-title">ESCROW BATTLE</div>
+          <div class="battle-instructions-title">HOW IT WORKS</div>
           <ul>
-            <li><span class="key">Attacks</span> stake tokens into pot</li>
-            <li><span class="key">Win</span> = claim your pot back!</li>
-            <li><span class="key">Lose</span> = tokens lost to escrow</li>
-            <li><span class="key">Type matchups</span> = 2x or 0.5x damage</li>
-            <li><span class="key">Retries cost real tokens!</span></li>
+            <li><span class="key">Your type</span> = damage you TAKE</li>
+            <li><span class="key">Move type</span> = damage you DEAL</li>
+            <li style="margin-top: 4px; color: #90ee90;">TECH > FINANCE > STRATEGY > TECH</li>
+            <li style="margin-top: 4px;"><span class="key">Win</span> = claim pot back</li>
+            <li><span class="key">Lose</span> = tokens forfeited</li>
           </ul>
         </div>
 
@@ -993,6 +1048,8 @@
         <div class="market-condition-banner" id="market-condition-banner">
           <div class="condition-title" id="condition-title">SUPERDAY</div>
           <div class="condition-effect" id="condition-effect">Goldman called back-to-back.</div>
+          <div class="condition-penalty" id="condition-penalty">PENALTY: 50% DAMAGE THIS TURN</div>
+          <button class="condition-acknowledge-btn" id="condition-acknowledge-btn">GOT IT</button>
         </div>
 
         <div class="opponent-area">
@@ -1092,6 +1149,10 @@
             <span class="move-damage">+40 HP / 0.40 USD</span>
           </button>
         </div>
+        <div class="forfeit-container" id="forfeit-container" style="display: none;">
+          <div class="forfeit-message">OUT OF MOVES! You can't afford any action.</div>
+          <button class="forfeit-btn" id="forfeit-btn">FORFEIT BATTLE</button>
+        </div>
       </div>
     </div>
 
@@ -1125,7 +1186,7 @@
 
     // Market Conditions
     let activeMarketCondition = null;
-    const MARKET_CONDITION_CHANCE = 0.25; // 25% chance each turn
+    const MARKET_CONDITION_CHANCE = 0.35; // 35% chance each turn
 
     // Budget System
     let playerBudget = 0;
@@ -1231,7 +1292,15 @@
 
     function rollMarketCondition() {
       if (Math.random() < MARKET_CONDITION_CHANCE) {
-        const condition = MARKET_CONDITION_LIST[Math.floor(Math.random() * MARKET_CONDITION_LIST.length)];
+        // Only roll conditions that affect at least one combatant
+        const trainerType = TRAINER_TYPES[currentTrainer?.index];
+        const relevantConditions = MARKET_CONDITION_LIST.filter(c =>
+          c.affectsType === playerType || c.affectsType === trainerType
+        );
+
+        if (relevantConditions.length === 0) return null;
+
+        const condition = relevantConditions[Math.floor(Math.random() * relevantConditions.length)];
         return condition;
       }
       return null;
@@ -1242,32 +1311,49 @@
       return condition.affectsType === type;
     }
 
-    function showMarketConditionBanner(condition, affectedNames) {
-      const banner = document.getElementById('market-condition-banner');
-      const titleEl = document.getElementById('condition-title');
-      const effectEl = document.getElementById('condition-effect');
+    function showMarketConditionBanner(condition, affectedNames, playerAffected, trainerAffected) {
+      return new Promise((resolve) => {
+        const banner = document.getElementById('market-condition-banner');
+        const titleEl = document.getElementById('condition-title');
+        const effectEl = document.getElementById('condition-effect');
+        const penaltyEl = document.getElementById('condition-penalty');
+        const ackBtn = document.getElementById('condition-acknowledge-btn');
 
-      titleEl.textContent = condition.title;
+        titleEl.textContent = condition.title;
 
-      // Build effect text showing who's affected
-      let effectHtml = '';
-      affectedNames.forEach(name => {
-        effectHtml += `<div>${condition.flavorText(name)}</div>`;
+        // Build effect text showing who's affected clearly
+        let effectHtml = '';
+        affectedNames.forEach(name => {
+          effectHtml += `<div>${condition.flavorText(name)}</div>`;
+        });
+        effectEl.innerHTML = effectHtml;
+
+        // Show clear penalty message
+        let penaltyText = '';
+        if (playerAffected && trainerAffected) {
+          penaltyText = `BOTH deal 50% damage this turn!`;
+        } else if (playerAffected) {
+          penaltyText = `YOU deal 50% damage this turn!`;
+        } else if (trainerAffected) {
+          penaltyText = `TRAINER deals 50% damage this turn!`;
+        }
+        penaltyEl.textContent = penaltyText;
+
+        banner.classList.add('active');
+
+        // Show indicator
+        const indicator = document.getElementById('active-condition-indicator');
+        indicator.textContent = `${condition.title} - ${penaltyText}`;
+        indicator.classList.add('active');
+
+        // Wait for acknowledgment
+        const handleClick = () => {
+          banner.classList.remove('active');
+          ackBtn.removeEventListener('click', handleClick);
+          resolve();
+        };
+        ackBtn.addEventListener('click', handleClick);
       });
-      effectHtml += `<div style="margin-top: 8px; color: #f87171;">${condition.effectText}</div>`;
-      effectEl.innerHTML = effectHtml;
-
-      banner.classList.add('active');
-
-      // Show indicator
-      const indicator = document.getElementById('active-condition-indicator');
-      indicator.textContent = `${condition.title} - ${condition.effectText}`;
-      indicator.classList.add('active');
-
-      // Hide banner after 2.5 seconds (indicator stays)
-      setTimeout(() => {
-        banner.classList.remove('active');
-      }, 2500);
     }
 
     function hideMarketConditionIndicator() {
@@ -1382,6 +1468,13 @@
             playerHeal(parseInt(btn.dataset.heal));
           }
         });
+      });
+
+      // Forfeit button listener
+      document.getElementById('forfeit-btn').addEventListener('click', () => {
+        if (battleActive) {
+          forfeitBattle();
+        }
       });
 
       // Keyboard controls - listen on both document and window
@@ -1621,6 +1714,10 @@
       // Hide any previous market condition indicator
       hideMarketConditionIndicator();
 
+      // Reset forfeit UI
+      document.getElementById('forfeit-container').style.display = 'none';
+      document.querySelector('.move-buttons').style.display = 'grid';
+
       // Update UI
       const trainerType = TRAINER_TYPES[trainerIndex];
       document.getElementById('opponent-name').innerHTML = `
@@ -1659,7 +1756,7 @@
     }
 
     function updateMoveButtons(trainerIndex) {
-      const moves = TRAINER_MOVES[trainerIndex] || PLAYER_MOVES;
+      const moves = PLAYER_MOVES;
       const defenderType = TRAINER_TYPES[trainerIndex];
       const attackButtons = document.querySelectorAll('.move-btn[data-move]');
 
@@ -1706,7 +1803,7 @@
     }
 
     function checkBudgetForMoves() {
-      const moves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      const moves = PLAYER_MOVES;
       const defenderType = TRAINER_TYPES[currentTrainer.index];
 
       // Check attack buttons
@@ -1737,12 +1834,100 @@
           btn.disabled = false;
         }
       });
+
+      // Check if player can afford ANY move at all
+      checkPlayerCanAffordAnyMove();
+    }
+
+    function checkPlayerCanAffordAnyMove() {
+      const moves = PLAYER_MOVES;
+      const defenderType = TRAINER_TYPES[currentTrainer?.index];
+
+      // Check attacks
+      let canAffordAnyAttack = false;
+      for (const move of moves) {
+        const effectiveness = getEffectiveness(move.type, defenderType);
+        const cost = parseFloat(move.txAmount) * effectiveness;
+        if (playerBudget >= cost) {
+          canAffordAnyAttack = true;
+          break;
+        }
+      }
+
+      // Check heals (only useful if HP < 100)
+      let canAffordAnyHeal = false;
+      if (playerHP < 100) {
+        for (const heal of HEAL_MOVES) {
+          if (playerBudget >= heal.cost) {
+            canAffordAnyHeal = true;
+            break;
+          }
+        }
+      }
+
+      const canAffordAnything = canAffordAnyAttack || canAffordAnyHeal;
+      const forfeitContainer = document.getElementById('forfeit-container');
+      const moveButtons = document.querySelector('.move-buttons');
+
+      if (!canAffordAnything && battleActive) {
+        // Show forfeit option, hide move buttons
+        forfeitContainer.style.display = 'block';
+        moveButtons.style.display = 'none';
+      } else {
+        // Hide forfeit option, show move buttons
+        forfeitContainer.style.display = 'none';
+        moveButtons.style.display = 'grid';
+      }
+    }
+
+    async function forfeitBattle() {
+      battleActive = false;
+      setMovesEnabled(false);
+      activeMarketCondition = null;
+      hideMarketConditionIndicator();
+
+      addBattleLog(`<span class="damage">${playerName} forfeited the battle!</span>`);
+      addBattleLog(`<span class="damage">Lost ${totalStaked.toFixed(3)} tokens to escrow.</span>`);
+
+      // End as a loss
+      const gameBudget = GAME_BUDGETS[gamesWon] || 1.00;
+      const gameNum = gamesWon + 1;
+
+      const title = document.getElementById('result-title');
+      title.textContent = 'YOU LOSE!';
+      title.className = 'result-title lose';
+
+      document.getElementById('result-stats').innerHTML = `
+        <div>Game ${gameNum} vs ${currentTrainer.name}</div>
+        <div style="color: #dc2626;">OUT OF BUDGET - FORFEITED</div>
+        <div style="color: #dc2626;">Lost ${totalStaked.toFixed(3)} tokens to escrow!</div>
+        <div>Your Type: ${playerType} | Their Type: ${TRAINER_TYPES[currentTrainer.index]}</div>
+        <div>Total TXs: ${battleTxs.length}</div>
+        <div style="color: #f59e0b; margin-top: 10px;">Each retry costs real tokens!</div>
+      `;
+
+      document.getElementById('tx-list').innerHTML = battleTxs.filter(tx => tx.hash !== 'SIMULATED').map(tx => `
+        <div>
+          ${tx.from === 'player' ? (tx.type === 'heal' ? '🔥' : '⚔️') : '💥'} ${tx.move}:
+          <a href="${config.explorerUrl}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 16)}...</a>
+        </div>
+      `).join('');
+
+      const playAgainBtn = document.getElementById('play-again-btn');
+      playAgainBtn.textContent = 'START OVER';
+      playAgainBtn.onclick = () => showScreen('overworld-screen');
+
+      // Reset forfeit container visibility
+      document.getElementById('forfeit-container').style.display = 'none';
+      document.querySelector('.move-buttons').style.display = 'grid';
+
+      setTimeout(() => showScreen('result-screen'), 1500);
     }
 
     async function playerAttack(moveIndex) {
       if (!battleActive || !isPlayerTurn) return;
 
-      const moves = TRAINER_MOVES[currentTrainer.index] || PLAYER_MOVES;
+      const moves = PLAYER_MOVES;
       const move = moves[moveIndex];
 
       // Pre-calculate cost to check budget
@@ -1771,23 +1956,24 @@
         // Check who is affected
         const affectedNames = [];
         const trainerType = TRAINER_TYPES[currentTrainer.index];
+        const playerAffected = isDebuffedByCondition(playerType, newCondition);
+        const trainerAffected = isDebuffedByCondition(trainerType, newCondition);
 
-        if (isDebuffedByCondition(playerType, newCondition)) {
+        if (playerAffected) {
           affectedNames.push(playerName);
         }
-        if (isDebuffedByCondition(trainerType, newCondition)) {
+        if (trainerAffected) {
           affectedNames.push(currentTrainer.name);
         }
 
         if (affectedNames.length > 0) {
-          showMarketConditionBanner(newCondition, affectedNames);
           addBattleLog(`<span class="market-condition">${newCondition.title} triggered!</span>`);
           affectedNames.forEach(name => {
             addBattleLog(`<span class="debuffed">${newCondition.flavorText(name)}</span>`);
           });
 
-          // Wait for banner to show
-          await new Promise(resolve => setTimeout(resolve, 2800));
+          // Wait for player to acknowledge the banner
+          await showMarketConditionBanner(newCondition, affectedNames, playerAffected, trainerAffected);
         }
       }
 
@@ -2022,34 +2208,53 @@
         addBattleLog(`<span class="${effText.class}">${effText.text}</span>`);
       }
 
-      // ESCROW MODEL: Trainer attacks are simulated (no real token transfer)
-      // Trainer's budget is tracked for game balance only
-
-      // Brief delay for UX
+      // ESCROW MODEL: Trainer also stakes into pot (real token transfer)
       showLoading('Trainer attacking...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      hideLoading();
 
-      // Deduct from trainer's budget (simulated)
-      trainerBudget = Math.max(0, trainerBudget - parseFloat(amount));
-      updateBudgetBars();
+      try {
+        const response = await fetch('/api/stake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: amount,
+            reason: 'trainer-attack'
+          })
+        });
 
-      battleTxs.push({
-        from: 'trainer',
-        hash: 'SIMULATED',
-        amount: amount,
-        move: move.name,
-        effectiveness: effectiveness,
-        marketDebuff: marketDebuff
-      });
+        const result = await response.json();
+        hideLoading();
 
-      playerHP = Math.max(0, playerHP - damage);
-      updateHPBars();
-      animateHit('player');
+        if (!result.success) {
+          throw new Error(result.message || 'TX failed');
+        }
 
-      addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
-      addBattleLog(`(Trainer attack simulated - no token transfer)`);
-      addBattleLog(`${currentTrainer.name}'s budget: ${trainerBudget.toFixed(3)}`);
+        // Deduct from trainer's budget and track staked amount
+        trainerBudget = Math.max(0, trainerBudget - parseFloat(amount));
+        totalStaked += parseFloat(amount);
+        updateBudgetBars();
+
+        battleTxs.push({
+          from: 'trainer',
+          hash: result.txHash,
+          amount: amount,
+          move: move.name,
+          effectiveness: effectiveness,
+          marketDebuff: marketDebuff
+        });
+
+        playerHP = Math.max(0, playerHP - damage);
+        updateHPBars();
+        animateHit('player');
+
+        addBattleLog(`<span class="damage">You took ${damage} damage!</span>`);
+        addBattleLog(`<a class="tx-hash" href="${config.explorerUrl}/tx/${result.txHash}" target="_blank">TX: ${result.txHash.slice(0, 10)}... (${amount} USD)</a>`);
+        addBattleLog(`${currentTrainer.name}'s budget: ${trainerBudget.toFixed(3)}`);
+
+      } catch (error) {
+        hideLoading();
+        console.error('Trainer TX failed:', error);
+        addBattleLog(`Trainer TX failed: ${error.message}`);
+      }
 
       // Clear condition at end of turn
       activeMarketCondition = null;

@@ -1,85 +1,195 @@
 # Baker Library Battle Arena
 
-A Pokemon-style battle game set in HBS's Baker Library where each attack triggers a real blockchain transaction on Tempo Testnet.
+A Pokemon-style battle game set in HBS's Baker Library where **every attack triggers a real blockchain transaction** on Tempo Testnet.
 
-**XP damage dealt = tokens transferred.**
+**Deal damage = Stake tokens. Win = Claim the pot. Lose = Forfeit everything.**
 
-## Quick Start
+---
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/ashwanth-eth/hbs-pokemon.git
-   cd hbs-pokemon
-   ```
+## Important: Local Setup Required
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+This game runs **locally on your machine**. There is no hosted version. To play, you'll need to:
 
-3. **Configure environment**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and add your trainer wallet addresses and private keys.
+1. Clone this repo and run it on your computer
+2. Create your own crypto wallets (just need private keys)
+3. Get free testnet tokens from the Tempo Faucet
 
-4. **Fund trainer wallets**
+**No real money required** - this uses Tempo Testnet tokens which are free.
 
-   Each trainer wallet needs testnet tokens to attack back. Get tokens from the Tempo testnet faucet.
+---
 
-5. **Start the server**
-   ```bash
-   npm start
-   ```
+## Setup Guide
 
-6. **Open in browser**
+### Step 1: Clone and Install
 
-   Navigate to `http://localhost:3000`
+```bash
+git clone https://github.com/ashwanth-eth/hbs-pokemon.git
+cd hbs-pokemon
+npm install
+```
 
-7. **Connect MetaMask**
+### Step 2: Create Your Wallets
 
-   The game will prompt you to connect and switch to Tempo Testnet.
+You need 2 private keys. Generate them at [vanity-eth.tk](https://vanity-eth.tk/):
 
-## How It Works
+1. Go to https://vanity-eth.tk/
+2. Click "Generate" to create a random wallet
+3. Save both the **Address** (starts with `0x`, 42 characters) and **Private Key** (starts with `0x`, 66 characters)
+4. Generate a second wallet the same way
 
-- Connect your MetaMask wallet
-- Choose a trainer to battle
-- Each attack you make sends a real TX from your wallet to the trainer
-- Each trainer attack sends a real TX from the trainer wallet to you
-- Battle ends when someone's HP hits 0
-- All TX hashes are clickable links to the block explorer
+You'll have:
+- **Wallet 1**: Your player wallet (stakes tokens in battles)
+- **Wallet 2**: The escrow wallet (holds the battle pot)
 
-## Battle Moves
+### Step 3: Configure Environment
 
-| Move | Damage | TX Amount | Hit Chance |
-|------|--------|-----------|------------|
-| Cold Email | 10 HP | 0.01 USD | 100% |
-| Case Crack | 25 HP | 0.025 USD | 95% |
-| Networking Blitz | 40 HP | 0.04 USD | 85% |
-| Disrupt | 60 HP | 0.06 USD | 70% |
+```bash
+cp .env.example .env
+```
 
-## The Trainers
+Open `.env` in a text editor and paste your private keys:
 
-- **Chad Blackstone** - PE Bro: "I modeled this outcome three ways."
-- **Priya Ventures** - The Founder: "My Series A closes Thursday."
-- **François McKinsey** - The Consultant: "Let me framework that for you."
+```env
+# Wallet 1 - Your player wallet private key
+PLAYER_WALLET=0xabc123...your_64_character_private_key_here
 
-## Tech Stack
+# Wallet 2 - Escrow wallet private key
+TRAINER_1_PRIVATE_KEY=0xdef456...your_64_character_private_key_here
+TRAINER_1_NAME=Chad Blackstone
+```
 
-- Frontend: Vanilla HTML/CSS/JS with ethers.js
-- Backend: Node.js + Express (serves config, signs trainer TXs)
-- Blockchain: Tempo Testnet (Chain ID: 42431)
+### Step 4: Get Free Testnet Tokens
+
+1. Go to the **Tempo Testnet Faucet**: https://faucet.tempo.xyz
+2. Paste your **Wallet 1 ADDRESS** (the 42-character address, NOT the private key)
+3. Request **pathUSD** tokens (you need these to play)
+4. Paste your **Wallet 2 ADDRESS** and request a small amount (for gas fees)
+
+### Step 5: Run the Game
+
+```bash
+npm start
+```
+
+You should see:
+```
+╔════════════════════════════════════════════════════════╗
+║   BAKER LIBRARY BATTLE ARENA                           ║
+║   Server running at http://localhost:3000              ║
+║   Battle Token: pathUSD                                ║
+╚════════════════════════════════════════════════════════╝
+```
+
+### Step 6: Play
+
+Open http://localhost:3000 in your browser. Use arrow keys to move, SPACE to battle trainers.
+
+---
+
+## How the Game Works
+
+### Escrow Battle System
+
+1. **Choose your persona** - PE Bro (FINANCE), Tech Founder (TECH), or Consultant (STRATEGY)
+2. **Walk around Baker Library** and challenge trainers
+3. **Every attack stakes real tokens** into an escrow pot
+4. **Win the battle** = Claim your entire pot back (break even)
+5. **Lose the battle** = Forfeit all staked tokens to escrow
+
+### Type System
+
+Your persona determines what damage you **TAKE**. Your move's type determines what damage you **DEAL**.
+
+```
+TECH beats FINANCE (2x damage)
+FINANCE beats STRATEGY (2x damage)
+STRATEGY beats TECH (2x damage)
+```
+
+| Trainer | Type | Weak To |
+|---------|------|---------|
+| Chad Blackstone | FINANCE | TECH moves |
+| Priya Ventures | TECH | STRATEGY moves |
+| François McKinsey | STRATEGY | FINANCE moves |
+
+| Move | Type | Damage | Cost | Strong Against |
+|------|------|--------|------|----------------|
+| Cold Email | STRATEGY | 10 | 0.10 | Priya |
+| Case Crack | STRATEGY | 25 | 0.25 | Priya |
+| Network Blitz | FINANCE | 40 | 0.40 | François |
+| Disrupt | TECH | 60 | 0.60 | Chad |
+
+### Market Conditions
+
+Random events (35% chance per turn) that debuff specific types:
+
+- **SUPERDAY** - FINANCE types deal 50% damage
+- **MARKETS KILL SAAS** - TECH types deal 50% damage
+- **PLS FIX** - STRATEGY types deal 50% damage
+
+### Budget System
+
+| Game | Budget |
+|------|--------|
+| Game 1 | 2.00 tokens |
+| Game 2 | 1.50 tokens |
+| Game 3 | 1.00 tokens |
+
+Run out of budget? You'll have to **forfeit** and lose all staked tokens.
+
+### Healing
+
+| Item | HP Restored | Cost |
+|------|-------------|------|
+| Energy Drink | +20 HP | 0.20 |
+| Adderall | +40 HP | 0.40 |
+
+---
 
 ## Network Details
 
-- **RPC URL:** https://rpc.moderato.tempo.xyz
-- **Chain ID:** 42431
-- **Explorer:** https://explore.tempo.xyz
-- **Currency:** USD
+| Setting | Value |
+|---------|-------|
+| Network | Tempo Testnet (Moderato) |
+| RPC URL | https://rpc.moderato.tempo.xyz |
+| Chain ID | 42431 |
+| Explorer | https://explore.tempo.xyz |
+| Faucet | https://faucet.tempo.xyz |
+| Battle Token | pathUSD (`0x20c0000000000000000000000000000000000000`) |
+
+---
+
+## Troubleshooting
+
+**"Transaction failed" errors:**
+- Make sure your player wallet has enough pathUSD tokens
+- Make sure your escrow wallet has some tokens for gas
+
+**Game won't start:**
+- Check that `.env` file exists with valid private keys
+- Private keys must start with `0x` and be 66 characters long
+
+**Can't get faucet tokens:**
+- Make sure you're pasting the ADDRESS (42 chars), not the private key (66 chars)
+- Try waiting a few minutes between requests
+
+---
 
 ## Security Note
 
-This is a **testnet demo only**. Trainer private keys are stored in `.env` which is gitignored. Never use mainnet private keys.
+- This is a **testnet demo only** - tokens have no real value
+- Private keys are stored in `.env` which is gitignored
+- **Never use mainnet private keys or real funds**
+- The game runs locally - your keys never leave your machine
+
+---
+
+## Tech Stack
+
+- **Frontend:** Vanilla HTML/CSS/JS with ethers.js
+- **Backend:** Node.js + Express (server-side wallet signing)
+- **Blockchain:** Tempo Testnet (Chain ID: 42431)
+- **Token:** pathUSD (TIP-20/ERC-20)
 
 ---
 
