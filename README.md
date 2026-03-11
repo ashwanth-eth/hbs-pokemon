@@ -6,6 +6,22 @@ A Pokemon-style battle game set in HBS's Baker Library where **every attack trig
 
 ---
 
+## Why Tempo? Agentic Payments in Action
+
+This demo showcases **agentic payment primitives** — the building blocks for AI agents that can autonomously transact on-chain with programmable guardrails. Every game mechanic maps to a real infrastructure pattern:
+
+| Game Mechanic | Agentic Payment Primitive |
+|---------------|---------------------------|
+| **Turn-based attacks** | Individual programmable payment instructions fired by an agent, not a human |
+| **PP limits (move caps)** | On-chain guardrails that autonomously block transactions when a policy threshold is hit |
+| **Market conditions** | External signals modifying payment outcomes in real time without human input |
+| **Budget depletion** | Session-scoped spending authorization — the core primitive for agentic wallets |
+| **Token burns on heal** | Irreversible spend decisions demonstrating transaction finality |
+
+Tempo's infrastructure enables agents to execute real token transfers with sub-second finality, making it possible to build autonomous systems that transact at the speed of gameplay.
+
+---
+
 ## Important: Local Setup Required
 
 This game runs **locally on your machine**. There is no hosted version. To play, you'll need to:
